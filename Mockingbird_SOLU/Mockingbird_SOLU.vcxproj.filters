@@ -76,5 +76,11 @@
     <FxCompile Include="source\HLSL\Star_PS.hlsl">
       <Filter>HLSL</Filter>
     </FxCompile>
+    <FxCompile Include="source\HLSL\SkyBox_VS.hlsl">
+      <Filter>HLSL</Filter>
+    </FxCompile>
+    <FxCompile Include="source\HLSL\SkyBox_PS.hlsl">
+      <Filter>HLSL</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

@@ -11,6 +11,8 @@ struct MyVertex
 {
 	XMFLOAT4  pos;
 	XMFLOAT4  color;
+	unsigned int u;
+	unsigned int v;
 };
 struct Scene
 {
@@ -18,6 +20,26 @@ struct Scene
 	XMMATRIX _proj;
 };
 
+
+struct VERTEX
+{
+	union
+	{
+		float xyzw[4];
+		struct
+		{
+			float _x, _y, _z, _w;
+		};
+	};
+	float _u;
+	float _v;
+
+};
+
+struct Triangle
+{
+	VERTEX v[3];
+};
 
 class DEMO
 {
@@ -42,6 +64,8 @@ class DEMO
 	ID3D11VertexShader* pProjection_VSShader = nullptr;
 	//D3D11 Stack Variables
 	D3D11_VIEWPORT viewport;
+	D3D11_VIEWPORT another_viewport;
+	D3D11_VIEWPORT* current_viewport;
 	D3D_FEATURE_LEVEL featureLevel;
 
 
@@ -54,7 +78,8 @@ class DEMO
 	ID3D11Texture2D* pCubeTexture = nullptr;
 	ID3D11SamplerState* pCubeTextureSampler = nullptr;
 	ID3D11ShaderResourceView* pCubeShaderResourceView = nullptr;
-	ID3D11RasterizerState* pCubeRS = nullptr;
+	ID3D11RasterizerState* pCubeRSf = nullptr;
+	ID3D11RasterizerState* pCubeRSb = nullptr;
 
 	Object star_matrix;
 	ID3D11Buffer* pStar = nullptr;
@@ -65,11 +90,20 @@ class DEMO
 
 	ID3D11Buffer* pConstantStarBuffer = nullptr;
 
-
+	//Skybox
+	ID3D11Resource* pSkyBoxTexture = nullptr;
+	ID3D11ShaderResourceView* pSkyBoxSRV = nullptr;
+	ID3D11InputLayout* pSkyBox_inputLayout = nullptr;
+	Object skyCube_matrix;
+	ID3D11Buffer* pSkyCube = nullptr;
+	ID3D11VertexShader* pSkymap_VS = nullptr;
+	ID3D11PixelShader* pSkymap_PS = nullptr;
 
 	//Scene
 	Scene scene;
 	Camera camera;
+	Camera another_camera;
+	Camera* current_camera = nullptr;
 	XTime xTime;
 
 

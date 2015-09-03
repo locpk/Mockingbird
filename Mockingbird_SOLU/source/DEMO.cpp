@@ -2,10 +2,12 @@
 
 #include "Cube.h"
 #include "numbers_test.h"
-#include "CSH/Projection_VS.csh"
-#include "CSH/Trivial_PS.csh"
+#include "CSH\Projection_VS.csh"
+#include "CSH\Trivial_PS.csh"
 #include "CSH\Star_VS.csh"
 #include "CSH\Star_PS.csh"
+#include "CSH\SkyBox_VS.csh"
+#include "CSH\SkyBox_PS.csh"
 #include "vld.h"
 
 //Helper Fuctions
@@ -65,7 +67,7 @@ DEMO* DEMO::s_pInstance = nullptr;
 DEMO* DEMO::GetInstance(HINSTANCE hinst, WNDPROC proc)
 {
 	if (s_pInstance == nullptr)
-		s_pInstance = new DEMO(hinst,proc);
+		s_pInstance = new DEMO(hinst, proc);
 
 	return s_pInstance;
 }
@@ -136,13 +138,19 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateRenderTargetView(pBackBuffer, 0, &pRenderTargetView);
 	SecureRelease(pBackBuffer);
 
-	
+
 	//Set up view port
 	ZeroMemory(&viewport, sizeof(viewport));
 	viewport.MaxDepth = 1;
 	viewport.MinDepth = 0;
 	viewport.Width = (float)swapchain_DESC.BufferDesc.Width;
 	viewport.Height = (float)swapchain_DESC.BufferDesc.Height;
+
+	ZeroMemory(&another_viewport, sizeof(another_viewport));
+	another_viewport.MaxDepth = 1;
+	another_viewport.MinDepth = 0;
+	another_viewport.Width = (float)swapchain_DESC.BufferDesc.Width;
+	another_viewport.Height = (float)swapchain_DESC.BufferDesc.Height;
 
 	//Set up Depth Buffer
 	D3D11_TEXTURE2D_DESC ZBufferdesc;
@@ -161,11 +169,179 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateDepthStencilView(pZBuffer, NULL, &pDepthStencilView);
 	pDeviceContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);
 
-	//Load Star
 
+
+
+	//Load Sky box
+	CreateDDSTextureFromFile(pDevice, L"..\\asset\\SkyboxOcean.dds", &pSkyBoxTexture, &pSkyBoxSRV);
+	//Create Sky Cube
+	VERTEX cubeVertices[8] =
+	{
+		{ -50.0f, 50.0f,50.0f,1.0f ,0.0f,0.0f }, //H
+		{ 50.0f, 50.0f,50.0f,1.0f ,0.0f,0.0f },//G
+		{ -50.0f, -50.0f,50.0f,1.0f,0.0f,0.0f },//D
+		{ 50.0f, -50.0f,50.0f,1.0f,0.0f,0.0f },//C
+		{ -50.0f, 50.0f,-50.0f,1.0f,0.0f,0.0f },//E
+		{ 50.0f, 50.0f,-50.0f,1.0f ,0.0f,0.0f },//F
+		{ -50.0f, -50.0f,-50.0f,1.0f ,0.0f,0.0f },//A
+		{ 50.0f, -50.0f,-50.0f,1.0f ,0.0f,0.0f }//B
+	};
+#pragma region tri
+	Triangle tri[12];
+	//Face 1
+	tri[0].v[0] = cubeVertices[4];
+	tri[0].v[0]._u = 0.0;
+	tri[0].v[0]._v = 0.0;
+	tri[0].v[1] = cubeVertices[6];
+	tri[0].v[1]._u = 0.0;
+	tri[0].v[1]._v = 1.0;
+	tri[0].v[2] = cubeVertices[7];
+	tri[0].v[2]._u = 1.0;
+	tri[0].v[2]._v = 1.0;
+
+
+	tri[1].v[0] = cubeVertices[4];
+	tri[1].v[0]._u = 0.0;
+	tri[1].v[0]._v = 0.0;
+	tri[1].v[1] = cubeVertices[7];
+	tri[1].v[1]._u = 1.0;
+	tri[1].v[1]._v = 1.0;
+	tri[1].v[2] = cubeVertices[5];
+	tri[1].v[2]._u = 1.0;
+	tri[1].v[2]._v = 0.0;
+
+	//Face 2
+	tri[2].v[0] = cubeVertices[5];
+	tri[2].v[0]._u = 0.0;
+	tri[2].v[0]._v = 0.0;
+	tri[2].v[1] = cubeVertices[7];
+	tri[2].v[1]._u = 0.0;
+	tri[2].v[1]._v = 1.0;
+	tri[2].v[2] = cubeVertices[3];
+	tri[2].v[2]._u = 1.0;
+	tri[2].v[2]._v = 1.0;
+
+	tri[3].v[0] = cubeVertices[5];
+	tri[3].v[0]._u = 0.0;
+	tri[3].v[0]._v = 0.0;
+	tri[3].v[1] = cubeVertices[3];
+	tri[3].v[1]._u = 1.0;
+	tri[3].v[1]._v = 1.0;
+	tri[3].v[2] = cubeVertices[1];
+	tri[3].v[2]._u = 1.0;
+	tri[3].v[2]._v = 0.0;
+
+	//Face 3
+	tri[4].v[0] = cubeVertices[1];
+	tri[4].v[0]._u = 0.0;
+	tri[4].v[0]._v = 0.0;
+	tri[4].v[1] = cubeVertices[3];
+	tri[4].v[1]._u = 0.0;
+	tri[4].v[1]._v = 1.0;
+	tri[4].v[2] = cubeVertices[2];
+	tri[4].v[2]._u = 1.0;
+	tri[4].v[2]._v = 1.0;
+
+	tri[5].v[0] = cubeVertices[1];
+	tri[5].v[0]._u = 0.0;
+	tri[5].v[0]._v = 0.0;
+	tri[5].v[1] = cubeVertices[2];
+	tri[5].v[1]._u = 1.0;
+	tri[5].v[1]._v = 1.0;
+	tri[5].v[2] = cubeVertices[0];
+	tri[5].v[2]._u = 1.0;
+	tri[5].v[2]._v = 0.0;
+
+	//Face 4
+	tri[6].v[0] = cubeVertices[0];
+	tri[6].v[0]._u = 0.0;
+	tri[6].v[0]._v = 0.0;
+	tri[6].v[1] = cubeVertices[2];
+	tri[6].v[1]._u = 0.0;
+	tri[6].v[1]._v = 1.0;
+	tri[6].v[2] = cubeVertices[6];
+	tri[6].v[2]._u = 1.0;
+	tri[6].v[2]._v = 1.0;
+
+	tri[7].v[0] = cubeVertices[0];
+	tri[7].v[0]._u = 0.0;
+	tri[7].v[0]._v = 0.0;
+	tri[7].v[1] = cubeVertices[6];
+	tri[7].v[1]._u = 1.0;
+	tri[7].v[1]._v = 1.0;
+	tri[7].v[2] = cubeVertices[4];
+	tri[7].v[2]._u = 1.0;
+	tri[7].v[2]._v = 0.0;
+
+	//Face 5
+	tri[8].v[0] = cubeVertices[4];
+	tri[8].v[0]._u = 0.0;
+	tri[8].v[0]._v = 1.0;
+	tri[8].v[1] = cubeVertices[5];
+	tri[8].v[1]._u = 1.0;
+	tri[8].v[1]._v = 1.0;
+	tri[8].v[2] = cubeVertices[1];
+	tri[8].v[2]._u = 1.0;
+	tri[8].v[2]._v = 0.0;
+
+	tri[9].v[0] = cubeVertices[4];
+	tri[9].v[0]._u = 0.0;
+	tri[9].v[0]._v = 1.0;
+	tri[9].v[1] = cubeVertices[1];
+	tri[9].v[1]._u = 1.0;
+	tri[9].v[1]._v = 0.0;
+	tri[9].v[2] = cubeVertices[0];
+	tri[9].v[2]._u = 0.0;
+	tri[9].v[2]._v = 0.0;
+
+	//Face 6
+	tri[10].v[0] = cubeVertices[6];
+	tri[10].v[0]._u = 0.0;
+	tri[10].v[0]._v = 1.0;
+	tri[10].v[1] = cubeVertices[7];
+	tri[10].v[1]._u = 1.0;
+	tri[10].v[1]._v = 1.0;
+	tri[10].v[2] = cubeVertices[3];
+	tri[10].v[2]._u = 1.0;
+	tri[10].v[2]._v = 0.0;
+
+	tri[11].v[0] = cubeVertices[6];
+	tri[11].v[0]._u = 0.0;
+	tri[11].v[0]._v = 1.0;
+	tri[11].v[1] = cubeVertices[3];
+	tri[11].v[1]._u = 1.0;
+	tri[11].v[1]._v = 0.0;
+	tri[11].v[2] = cubeVertices[2];
+	tri[11].v[2]._u = 0.0;
+	tri[11].v[2]._v = 0.0;
+
+#pragma endregion tri
+	D3D11_BUFFER_DESC skyBoxBufferDesc;
+	ZeroMemory(&skyBoxBufferDesc, sizeof(skyBoxBufferDesc));
+	skyBoxBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	skyBoxBufferDesc.ByteWidth = sizeof(float) * 36;
+	skyBoxBufferDesc.CPUAccessFlags = NULL;
+	skyBoxBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	skyBoxBufferDesc.MiscFlags = 0;
+	skyBoxBufferDesc.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA skyBoxVerticesData;
+	ZeroMemory(&skyBoxVerticesData, sizeof(skyBoxVerticesData));
+	skyBoxVerticesData.pSysMem = tri;
+	pDevice->CreateBuffer(&skyBoxBufferDesc, &skyBoxVerticesData, &pSkyCube);
+
+	pDevice->CreateVertexShader(SkyBox_VS, sizeof(SkyBox_VS), NULL, &pSkymap_VS);
+	pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pSkymap_PS);
+
+	D3D11_INPUT_ELEMENT_DESC skyBoxInputLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	pDevice->CreateInputLayout(skyBoxInputLayout, 2, SkyBox_VS, sizeof(SkyBox_VS), &pSkyBox_inputLayout);
+	
+
+	//Load Star
 	MyVertex* star = CreateStar();
-	
-	
 	D3D11_BUFFER_DESC starBufferDesc;
 	ZeroMemory(&starBufferDesc, sizeof(starBufferDesc));
 	starBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -184,6 +360,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateVertexShader(Star_VS, sizeof(Star_VS), NULL, &pStar_VSShader);
 	pDevice->CreatePixelShader(Star_PS, sizeof(Star_PS), NULL, &pStar_PSShader);
 
+
 	//Create Star InputLayout
 	D3D11_INPUT_ELEMENT_DESC starInputLayout[] =
 	{
@@ -193,62 +370,62 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateInputLayout(starInputLayout, 2, Star_VS, sizeof(Star_VS), &pStar_inputLayout);
 
 
-	unsigned int index[60];
+	unsigned int starIndex[60];
 	for (size_t i = 0; i < 30; i++)
 	{
 		if (i % 3 == 0)
 		{
-			index[i] = 0;
+			starIndex[i] = 0;
 		}
 	}
 	for (size_t i = 29; i < 60; i++)
 	{
 		if (i % 3 == 0)
 		{
-			index[i] = 11;
+			starIndex[i] = 11;
 		}
 	}
-	index[1] = 1;
-	index[2] = 2;
-	index[4] = 2;
-	index[5] = 3;
-	index[7] = 3;
-	index[8] = 4;
-	index[10] = 4;
-	index[11] = 5;
-	index[13] = 5;
-	index[14] = 6;
-	index[16] = 6;
-	index[17] = 7;
-	index[19] = 7;
-	index[20] = 8;
-	index[22] = 8;
-	index[23] = 9;
-	index[25] = 9;
-	index[26] = 10;
-	index[28] = 10;
-	index[29] = 1;
+	starIndex[1] = 1;
+	starIndex[2] = 2;
+	starIndex[4] = 2;
+	starIndex[5] = 3;
+	starIndex[7] = 3;
+	starIndex[8] = 4;
+	starIndex[10] = 4;
+	starIndex[11] = 5;
+	starIndex[13] = 5;
+	starIndex[14] = 6;
+	starIndex[16] = 6;
+	starIndex[17] = 7;
+	starIndex[19] = 7;
+	starIndex[20] = 8;
+	starIndex[22] = 8;
+	starIndex[23] = 9;
+	starIndex[25] = 9;
+	starIndex[26] = 10;
+	starIndex[28] = 10;
+	starIndex[29] = 1;
 
-	index[31] = 1;
-	index[32] = 10;
-	index[34] = 10;
-	index[35] = 9;
-	index[37] = 9;
-	index[38] = 8;
-	index[40] = 8;
-	index[41] = 7;
-	index[43] = 7;
-	index[44] = 6;
-	index[46] = 6;
-	index[47] = 5;
-	index[49] = 5;
-	index[50] = 4;
-	index[52] = 4;
-	index[53] = 3;
-	index[55] = 3;
-	index[56] = 2;
-	index[58] = 2;
-	index[59] = 1;
+	starIndex[31] = 1;
+	starIndex[32] = 10;
+	starIndex[34] = 10;
+	starIndex[35] = 9;
+	starIndex[37] = 9;
+	starIndex[38] = 8;
+	starIndex[40] = 8;
+	starIndex[41] = 7;
+	starIndex[43] = 7;
+	starIndex[44] = 6;
+	starIndex[46] = 6;
+	starIndex[47] = 5;
+	starIndex[49] = 5;
+	starIndex[50] = 4;
+	starIndex[52] = 4;
+	starIndex[53] = 3;
+	starIndex[55] = 3;
+	starIndex[56] = 2;
+	starIndex[58] = 2;
+	starIndex[59] = 1;
 
 
 	//Create Star Index Buffer
@@ -262,7 +439,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	starIndexBufferDesc.StructureByteStride = 0;
 	D3D11_SUBRESOURCE_DATA starIndexBufferData;
 	ZeroMemory(&starIndexBufferData, sizeof(starIndexBufferData));
-	starIndexBufferData.pSysMem = index;
+	starIndexBufferData.pSysMem = starIndex;
 	pDevice->CreateBuffer(&starIndexBufferDesc, &starIndexBufferData, &pStar_indexBuffer);
 
 
@@ -394,8 +571,15 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	cubeRasterDESC.AntialiasedLineEnable = true;
 	cubeRasterDESC.FrontCounterClockwise = true;
 	cubeRasterDESC.FillMode = D3D11_FILL_SOLID;
-	cubeRasterDESC.CullMode = D3D11_CULL_NONE;
-	pDevice->CreateRasterizerState(&cubeRasterDESC, &pCubeRS);
+	cubeRasterDESC.CullMode = D3D11_CULL_FRONT;
+	pDevice->CreateRasterizerState(&cubeRasterDESC, &pCubeRSf);
+
+	ZeroMemory(&cubeRasterDESC, sizeof(cubeRasterDESC));
+	cubeRasterDESC.AntialiasedLineEnable = true;
+	cubeRasterDESC.FrontCounterClockwise = true;
+	cubeRasterDESC.FillMode = D3D11_FILL_SOLID;
+	cubeRasterDESC.CullMode = D3D11_CULL_BACK;
+	pDevice->CreateRasterizerState(&cubeRasterDESC, &pCubeRSb);
 
 
 	//Create Blend State
@@ -416,8 +600,13 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 
 	GetCursorPos(&lastPos);
 	cube_matrix._translation = /*XMMatrixTranslation(0.0f, 2.0f, 0.0f) * */XMMatrixIdentity();
-	star_matrix._translation = XMMatrixScaling(2.0f, 3.0f, 2.0f) * XMMatrixTranslation(0.0f, 2.0f, 0.0f) ;
-
+	star_matrix._translation = XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
+	skyCube_matrix._translation = XMMatrixIdentity();
+	another_camera.SetPosition({ 0.0f, 1.0f, -20.0f });
+	//another_camera.SetForward({ 0.0f, -5.0f, 0.0f });
+	another_camera.UpdateView();
+	current_camera = &camera;
+	current_viewport = &viewport;
 }
 
 DEMO::~DEMO()
@@ -440,7 +629,7 @@ bool DEMO::Run()
 		cube_matrix._translation = rotY * cube_matrix._translation;
 		star_matrix._translation = rotYN * star_matrix._translation;
 	}
-	SHORT left, right, up, down, shift,w,a,s,d;
+	SHORT left, right, up, down, shift, w, a, s, d;
 	left = GetAsyncKeyState(VK_LEFT) & 0x1;
 	a = GetAsyncKeyState('A') & 0x1;
 	right = GetAsyncKeyState(VK_RIGHT) & 0x1;
@@ -452,43 +641,58 @@ bool DEMO::Run()
 	shift = GetAsyncKeyState(VK_SHIFT);
 	if (left || a)
 	{
-		camera.Stafe(-(float)xTime.Delta() * 500);
+		current_camera->Stafe(-(float)xTime.Delta() * 500);
 	}
 
-	if (right ||d)
+	if (right || d)
 	{
-		camera.Stafe((float)xTime.Delta() * 500);
+		current_camera->Stafe((float)xTime.Delta() * 500);
 	}
 
-	if (up||w)
+	if (up || w)
 	{
-		camera.Walk((float)xTime.Delta() * 500);
+		current_camera->Walk((float)xTime.Delta() * 500);
 	}
 
-	if (down||s)
+	if (down || s)
 	{
-		camera.Walk(-(float)xTime.Delta() * 500);
+		current_camera->Walk(-(float)xTime.Delta() * 500);
 	}
 
 	if (shift && up)
 	{
-		camera.Climb((float)xTime.Delta() * 500);
+		current_camera->Climb((float)xTime.Delta() * 500);
 	}
 
 	if (shift && down)
 	{
-		camera.Climb(-(float)xTime.Delta() * 500);
+		current_camera->Climb(-(float)xTime.Delta() * 500);
 	}
 
 	GetCursorPos(&CurPos);
 	if (GetAsyncKeyState(VK_LBUTTON) && (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
 	{
-		camera.Pitch(0.15f*(CurPos.y - lastPos.y));
-		camera.RotateY(0.15f*(CurPos.x - lastPos.x));
+		current_camera->Pitch(0.15f*(CurPos.y - lastPos.y));
+		current_camera->RotateY(0.15f*(CurPos.x - lastPos.x));
 		lastPos.x = CurPos.x;
 		lastPos.y = CurPos.y;
 	}
-	
+
+	if (GetAsyncKeyState('G') & 0x1)
+	{
+		current_camera = &another_camera;
+		current_viewport = &another_viewport;
+	}
+	else if (GetAsyncKeyState('H') & 0x1)
+	{
+		//Setup Scene object
+		current_camera = &camera;
+		current_viewport = &viewport;
+	}
+	scene._proj = current_camera->GetProj();
+	scene._view = current_camera->GetView();
+	pDeviceContext->RSSetViewports(1, current_viewport);
+
 
 
 	//Clear background
@@ -496,17 +700,13 @@ bool DEMO::Run()
 	pDeviceContext->ClearRenderTargetView(pRenderTargetView, clearColours);
 	pDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	//Setup Scene object
-	scene._proj = camera.GetProj();
-	scene._view = camera.GetView();
+	
 
 	D3D11_MAPPED_SUBRESOURCE mapObjectSubresource;
 	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
 	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
 	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	
 
 	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
 	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
@@ -520,7 +720,7 @@ bool DEMO::Run()
 	pDeviceContext->Unmap(pConstantStarBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(2, 1, &pConstantStarBuffer);
 
-	pDeviceContext->RSSetViewports(1, &viewport);
+
 
 
 	//Star
@@ -541,7 +741,7 @@ bool DEMO::Run()
 	pDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
 	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
 	UINT stride = sizeof(_OBJ_VERT_);
-	
+
 	pDeviceContext->IASetVertexBuffers(0, 1, &pCube, &stride, &offset);
 	pDeviceContext->VSSetShader(pProjection_VSShader, NULL, 0);
 	pDeviceContext->PSSetShader(pCube_PSShader, NULL, 0);
@@ -549,11 +749,29 @@ bool DEMO::Run()
 	pDeviceContext->IASetInputLayout(pCube_inputLayout);
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	pDeviceContext->RSSetState(pCubeRS);
+	pDeviceContext->RSSetState(pCubeRSf);
+	pDeviceContext->DrawIndexed(1692, 0, 0);
+	pDeviceContext->RSSetState(pCubeRSb);
 	pDeviceContext->DrawIndexed(1692, 0, 0);
 
+	//Skybox
+	D3D11_MAPPED_SUBRESOURCE mapSkyBoxSubresource;
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSkyBoxSubresource);
+	memcpy(mapSkyBoxSubresource.pData, &skyCube_matrix, sizeof(skyCube_matrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
-	
+
+	pDeviceContext->PSSetShaderResources(0, 1, &pSkyBoxSRV);
+	UINT Skyboxstride = sizeof(float) + 2* sizeof(unsigned int);
+	pDeviceContext->IASetVertexBuffers(0, 1, &pSkyCube, &Skyboxstride, &offset);
+	pDeviceContext->VSSetShader(pSkymap_VS, NULL, 0);
+	pDeviceContext->PSSetShader(pSkymap_PS, NULL, 0);
+	pDeviceContext->IASetInputLayout(pSkyBox_inputLayout);
+	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeviceContext->Draw(36, 0);
+
 
 	pSwapchain->Present(0, 0);
 	return true;
@@ -570,21 +788,26 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeTexture);
 	SecureRelease(pCubeTextureSampler);
 	SecureRelease(pCubeShaderResourceView);
-	SecureRelease(pCubeRS);
-	
+	SecureRelease(pCubeRSf);
+	SecureRelease(pCubeRSb);
+
 
 	SecureRelease(pStar);
 	SecureRelease(pStar_inputLayout);
 	SecureRelease(pStar_indexBuffer);
 	SecureRelease(pStar_VSShader);
 	SecureRelease(pStar_PSShader);
-
+	SecureRelease(pConstantStarBuffer);
 	SecureRelease(pRenderTargetView);
 	SecureRelease(pDepthStencilView);
 	SecureRelease(pZBuffer);
 	SecureRelease(pConstantObjectBuffer);
 	SecureRelease(pConstantSceneBuffer);
 	SecureRelease(pBlendState);
+
+	SecureRelease(pSkyBoxTexture);
+	SecureRelease(pSkyBoxSRV);
+
 
 	SecureRelease(pDeviceContext);
 	SecureRelease(pSwapchain);
