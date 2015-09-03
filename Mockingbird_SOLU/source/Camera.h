@@ -34,6 +34,7 @@ public:
 	//Transformation 
 	void Walk(float _speed);
 	void Stafe(float _speed);
+	void Climb(float _speed);
 	void Pitch(float _angleDegree);
 	void RotateY(float _angleDegree);
 

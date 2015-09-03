@@ -5,13 +5,6 @@ texture2D baseTexture : register(t0);
 
 SamplerState filters : register(s0); 
 
-cbuffer SCENE : register(b0)
-{
-	float index;
-	float4x4 viewMatrix;
-	float4x4 projectionMatrix;
-}
-
 struct P_IN
 {
 	float4 posH : SV_POSITION;

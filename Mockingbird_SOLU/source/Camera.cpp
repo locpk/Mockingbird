@@ -2,7 +2,7 @@
 
 
 
-Camera::Camera() : up(0.0f, 1.0f, 0.0f), side(1.0f, 0.0f, 0.0f), forward(0.0f, 0.0f, 1.0f), position(0.0f, 1.0f, -5.0f)
+Camera::Camera() : up(0.0f, 1.0f, 0.0f), side(1.0f, 0.0f, 0.0f), forward(0.0f, 0.0f, 1.0f), position(0.0f, 1.0f, -10.0f)
 {
 	XMFLOAT3 focus { 0.0f,0.0f,1.0f };
 	view = XMMatrixLookToLH(XMLoadFloat3(&position), XMLoadFloat3(&focus), XMLoadFloat3(&up));
@@ -33,6 +33,13 @@ void Camera::Walk(float _speed)
 void Camera::Stafe(float _speed)
 {
 	XMStoreFloat3(&position, XMVectorMultiplyAdd(XMVectorReplicate(_speed), XMLoadFloat3(&side), XMLoadFloat3(&position)));
+	UpdateView();
+}
+
+void Camera::Climb(float _speed)
+{
+	XMFLOAT3 y{ 0.0f,1.0f,0.0f };
+	XMStoreFloat3(&position, XMVectorMultiplyAdd(XMVectorReplicate(_speed), XMLoadFloat3(&y), XMLoadFloat3(&position)));
 	UpdateView();
 }
 

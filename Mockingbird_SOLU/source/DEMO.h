@@ -1,9 +1,5 @@
 #pragma once
 #include "Define.h"
-#include "Cube.h"
-#include "numbers_test.h"
-#include "CSH/Projection_VS.csh"
-#include "CSH/Trivial_PS.csh"
 #include "Camera.h"
 
 struct Object
@@ -11,12 +7,13 @@ struct Object
 	XMMATRIX _translation;
 };
 
+struct MyVertex
+{
+	XMFLOAT4  pos;
+	XMFLOAT4  color;
+};
 struct Scene
 {
-	float index;
-	float pad1;
-	float pad2;
-	float pad3;
 	XMMATRIX _view;
 	XMMATRIX _proj;
 };
@@ -59,14 +56,23 @@ class DEMO
 	ID3D11ShaderResourceView* pCubeShaderResourceView = nullptr;
 	ID3D11RasterizerState* pCubeRS = nullptr;
 
+	Object star_matrix;
+	ID3D11Buffer* pStar = nullptr;
+	ID3D11InputLayout* pStar_inputLayout = nullptr;
+	ID3D11Buffer* pStar_indexBuffer = nullptr;
+	ID3D11VertexShader* pStar_VSShader = nullptr;
+	ID3D11PixelShader* pStar_PSShader = nullptr;
+
+	ID3D11Buffer* pConstantStarBuffer = nullptr;
 
 
 
 	//Scene
 	Scene scene;
 	Camera camera;
-
 	XTime xTime;
+
+
 
 	static DEMO* s_pInstance;
 

@@ -1,5 +1,65 @@
 #include "DEMO.h"
 
+#include "Cube.h"
+#include "numbers_test.h"
+#include "CSH/Projection_VS.csh"
+#include "CSH/Trivial_PS.csh"
+#include "CSH\Star_VS.csh"
+#include "CSH\Star_PS.csh"
+#include "vld.h"
+
+//Helper Fuctions
+MyVertex* CreateStar()
+{
+	//Create Star
+	MyVertex* star = new MyVertex[12];
+	star[0].pos.x = 0.0f;
+	star[0].pos.y = 0.0f;
+	star[0].pos.z = -0.1f;
+	star[0].pos.w = 1.0f;
+	star[0].color = { 0.0f,0.0f,1.0f,1.0f };
+	star[11].pos.x = 0.0f;
+	star[11].pos.y = 0.0f;
+	star[11].pos.z = 0.1f;
+	star[11].pos.w = 1.0f;
+	star[11].color = { 0.0f,0.0f,1.0f,1.0f };
+	size_t j = 1;
+	for (size_t i = 0; i < 360; i += 36, j++)
+	{
+		if (j % 2 == 1)
+		{
+			star[j].pos.x = 0.5f*sinf(XMConvertToRadians((float)i));
+			star[j].pos.y = 0.5f*cosf(XMConvertToRadians((float)i));
+			star[j].pos.z = 0.0f;
+			star[j].pos.w = 1.0f;
+			star[j].color = { 0.0f,1.0f,0.0f,1.0f };
+		}
+		else
+		{
+			star[j].pos.x = 0.2f*sinf(XMConvertToRadians((float)i));
+			star[j].pos.y = 0.2f*cosf(XMConvertToRadians((float)i));
+			star[j].pos.z = 0.0f;
+			star[j].pos.w = 1.0f;
+			star[j].color = { 1.0f,0.0f,0.0f,1.0f };
+		}
+
+	}
+	return	star;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 DEMO* DEMO::s_pInstance = nullptr;
 
 DEMO* DEMO::GetInstance(HINSTANCE hinst, WNDPROC proc)
@@ -101,10 +161,109 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateDepthStencilView(pZBuffer, NULL, &pDepthStencilView);
 	pDeviceContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);
 
+	//Load Star
 
-
-
+	MyVertex* star = CreateStar();
 	
+	
+	D3D11_BUFFER_DESC starBufferDesc;
+	ZeroMemory(&starBufferDesc, sizeof(starBufferDesc));
+	starBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	starBufferDesc.ByteWidth = sizeof(MyVertex) * 12;
+	starBufferDesc.CPUAccessFlags = NULL;
+	starBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	starBufferDesc.MiscFlags = 0;
+	starBufferDesc.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA starVerticesData;
+	ZeroMemory(&starVerticesData, sizeof(starVerticesData));
+	starVerticesData.pSysMem = star;
+	pDevice->CreateBuffer(&starBufferDesc, &starVerticesData, &pStar);
+
+	delete star;
+	//Create Star Shaders
+	pDevice->CreateVertexShader(Star_VS, sizeof(Star_VS), NULL, &pStar_VSShader);
+	pDevice->CreatePixelShader(Star_PS, sizeof(Star_PS), NULL, &pStar_PSShader);
+
+	//Create Star InputLayout
+	D3D11_INPUT_ELEMENT_DESC starInputLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	pDevice->CreateInputLayout(starInputLayout, 2, Star_VS, sizeof(Star_VS), &pStar_inputLayout);
+
+
+	unsigned int index[60];
+	for (size_t i = 0; i < 30; i++)
+	{
+		if (i % 3 == 0)
+		{
+			index[i] = 0;
+		}
+	}
+	for (size_t i = 29; i < 60; i++)
+	{
+		if (i % 3 == 0)
+		{
+			index[i] = 11;
+		}
+	}
+	index[1] = 1;
+	index[2] = 2;
+	index[4] = 2;
+	index[5] = 3;
+	index[7] = 3;
+	index[8] = 4;
+	index[10] = 4;
+	index[11] = 5;
+	index[13] = 5;
+	index[14] = 6;
+	index[16] = 6;
+	index[17] = 7;
+	index[19] = 7;
+	index[20] = 8;
+	index[22] = 8;
+	index[23] = 9;
+	index[25] = 9;
+	index[26] = 10;
+	index[28] = 10;
+	index[29] = 1;
+
+	index[31] = 1;
+	index[32] = 10;
+	index[34] = 10;
+	index[35] = 9;
+	index[37] = 9;
+	index[38] = 8;
+	index[40] = 8;
+	index[41] = 7;
+	index[43] = 7;
+	index[44] = 6;
+	index[46] = 6;
+	index[47] = 5;
+	index[49] = 5;
+	index[50] = 4;
+	index[52] = 4;
+	index[53] = 3;
+	index[55] = 3;
+	index[56] = 2;
+	index[58] = 2;
+	index[59] = 1;
+
+
+	//Create Star Index Buffer
+	D3D11_BUFFER_DESC starIndexBufferDesc;
+	ZeroMemory(&starIndexBufferDesc, sizeof(starIndexBufferDesc));
+	starIndexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	starIndexBufferDesc.ByteWidth = sizeof(unsigned int) * 60;
+	starIndexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	starIndexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	starIndexBufferDesc.MiscFlags = 0;
+	starIndexBufferDesc.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA starIndexBufferData;
+	ZeroMemory(&starIndexBufferData, sizeof(starIndexBufferData));
+	starIndexBufferData.pSysMem = index;
+	pDevice->CreateBuffer(&starIndexBufferDesc, &starIndexBufferData, &pStar_indexBuffer);
 
 
 	//Load Cube
@@ -122,18 +281,18 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateBuffer(&cubeBufferDesc, &cubeVerticesData, &pCube);
 
 
-	//Create Shaders
+	//Create Cube Shaders
 	pDevice->CreateVertexShader(Projection_VS, sizeof(Projection_VS), NULL, &pProjection_VSShader);
 	pDevice->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &pCube_PSShader);
 
-	//Create InputLayout
-	D3D11_INPUT_ELEMENT_DESC inputLayout[] =
+	//Create Cube InputLayout
+	D3D11_INPUT_ELEMENT_DESC cubeInputLayout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
-	pDevice->CreateInputLayout(inputLayout, 3, Projection_VS, sizeof(Projection_VS), &pCube_inputLayout);
+	pDevice->CreateInputLayout(cubeInputLayout, 3, Projection_VS, sizeof(Projection_VS), &pCube_inputLayout);
 
 
 
@@ -156,12 +315,22 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	D3D11_BUFFER_DESC constbufferObjectDesc;
 	ZeroMemory(&constbufferObjectDesc, sizeof(constbufferObjectDesc));
 	constbufferObjectDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	constbufferObjectDesc.ByteWidth = sizeof(Object);
+	constbufferObjectDesc.ByteWidth = sizeof(XMMATRIX);
 	constbufferObjectDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	constbufferObjectDesc.Usage = D3D11_USAGE_DYNAMIC;
 	constbufferObjectDesc.MiscFlags = 0;
 	constbufferObjectDesc.StructureByteStride = 0;
 	pDevice->CreateBuffer(&constbufferObjectDesc, NULL, &pConstantObjectBuffer);
+
+	D3D11_BUFFER_DESC constbufferStarDesc;
+	ZeroMemory(&constbufferStarDesc, sizeof(constbufferStarDesc));
+	constbufferStarDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constbufferStarDesc.ByteWidth = sizeof(XMMATRIX);
+	constbufferStarDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	constbufferStarDesc.Usage = D3D11_USAGE_DYNAMIC;
+	constbufferStarDesc.MiscFlags = 0;
+	constbufferStarDesc.StructureByteStride = 0;
+	pDevice->CreateBuffer(&constbufferStarDesc, NULL, &pConstantStarBuffer);
 
 	D3D11_BUFFER_DESC constbufferSceneDesc;
 	ZeroMemory(&constbufferSceneDesc, sizeof(constbufferSceneDesc));
@@ -223,6 +392,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	D3D11_RASTERIZER_DESC cubeRasterDESC;
 	ZeroMemory(&cubeRasterDESC, sizeof(cubeRasterDESC));
 	cubeRasterDESC.AntialiasedLineEnable = true;
+	cubeRasterDESC.FrontCounterClockwise = true;
 	cubeRasterDESC.FillMode = D3D11_FILL_SOLID;
 	cubeRasterDESC.CullMode = D3D11_CULL_NONE;
 	pDevice->CreateRasterizerState(&cubeRasterDESC, &pCubeRS);
@@ -246,7 +416,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 
 	GetCursorPos(&lastPos);
 	cube_matrix._translation = /*XMMatrixTranslation(0.0f, 2.0f, 0.0f) * */XMMatrixIdentity();
-
+	star_matrix._translation = XMMatrixScaling(2.0f, 3.0f, 2.0f) * XMMatrixTranslation(0.0f, 2.0f, 0.0f) ;
 
 }
 
@@ -266,32 +436,52 @@ bool DEMO::Run()
 	{
 		timer = 0;
 		XMMATRIX rotY = XMMatrixRotationY(XMConvertToRadians(1.0f));
+		XMMATRIX rotYN = XMMatrixRotationY(XMConvertToRadians(-1.0f));
 		cube_matrix._translation = rotY * cube_matrix._translation;
+		star_matrix._translation = rotYN * star_matrix._translation;
 	}
-
-	if (GetAsyncKeyState(VK_LEFT) & 0x1)
-	{
-		camera.Stafe((float)xTime.Delta() * 500);
-	}
-
-	if (GetAsyncKeyState(VK_RIGHT) & 0x1)
+	SHORT left, right, up, down, shift,w,a,s,d;
+	left = GetAsyncKeyState(VK_LEFT) & 0x1;
+	a = GetAsyncKeyState('A') & 0x1;
+	right = GetAsyncKeyState(VK_RIGHT) & 0x1;
+	d = GetAsyncKeyState('D') & 0x1;
+	up = GetAsyncKeyState(VK_UP) & 0x1;
+	w = GetAsyncKeyState('W') & 0x1;
+	down = GetAsyncKeyState(VK_DOWN) & 0x1;
+	s = GetAsyncKeyState('S') & 0x1;
+	shift = GetAsyncKeyState(VK_SHIFT);
+	if (left || a)
 	{
 		camera.Stafe(-(float)xTime.Delta() * 500);
 	}
 
-	if (GetAsyncKeyState(VK_UP) & 0x1)
+	if (right ||d)
 	{
-		camera.Walk((float)xTime.Delta() * 500);
-
+		camera.Stafe((float)xTime.Delta() * 500);
 	}
 
-	if (GetAsyncKeyState(VK_DOWN) & 0x1)
+	if (up||w)
+	{
+		camera.Walk((float)xTime.Delta() * 500);
+	}
+
+	if (down||s)
 	{
 		camera.Walk(-(float)xTime.Delta() * 500);
 	}
 
+	if (shift && up)
+	{
+		camera.Climb((float)xTime.Delta() * 500);
+	}
+
+	if (shift && down)
+	{
+		camera.Climb(-(float)xTime.Delta() * 500);
+	}
+
 	GetCursorPos(&CurPos);
-	if (lastPos.x != CurPos.x || lastPos.y != CurPos.y)
+	if (GetAsyncKeyState(VK_LBUTTON) && (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
 	{
 		camera.Pitch(0.15f*(CurPos.y - lastPos.y));
 		camera.RotateY(0.15f*(CurPos.x - lastPos.x));
@@ -307,7 +497,6 @@ bool DEMO::Run()
 	pDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	//Setup Scene object
-	scene.index = 1;
 	scene._proj = camera.GetProj();
 	scene._view = camera.GetView();
 
@@ -317,16 +506,34 @@ bool DEMO::Run()
 	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
+	
+
 	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
 	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
 	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
 	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
+
+	D3D11_MAPPED_SUBRESOURCE mapStarSubresource;
+	pDeviceContext->Map(pConstantStarBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapStarSubresource);
+	memcpy(mapStarSubresource.pData, &star_matrix, sizeof(star_matrix));
+	pDeviceContext->Unmap(pConstantStarBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(2, 1, &pConstantStarBuffer);
 
 	pDeviceContext->RSSetViewports(1, &viewport);
 
 
+	//Star
+	UINT offset = 0;
+	UINT starStride = sizeof(MyVertex);
+	pDeviceContext->RSSetState(NULL);
+	pDeviceContext->IASetVertexBuffers(0, 1, &pStar, &starStride, &offset);
+	pDeviceContext->VSSetShader(pStar_VSShader, NULL, 0);
+	pDeviceContext->PSSetShader(pStar_PSShader, NULL, 0);
+	pDeviceContext->IASetIndexBuffer(pStar_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	pDeviceContext->IASetInputLayout(pStar_inputLayout);
+	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pDeviceContext->DrawIndexed(60, 0, 0);
 
 
 	//Cube
@@ -334,7 +541,7 @@ bool DEMO::Run()
 	pDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
 	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
 	UINT stride = sizeof(_OBJ_VERT_);
-	UINT offset = 0;
+	
 	pDeviceContext->IASetVertexBuffers(0, 1, &pCube, &stride, &offset);
 	pDeviceContext->VSSetShader(pProjection_VSShader, NULL, 0);
 	pDeviceContext->PSSetShader(pCube_PSShader, NULL, 0);
@@ -346,6 +553,7 @@ bool DEMO::Run()
 	pDeviceContext->DrawIndexed(1692, 0, 0);
 
 
+	
 
 	pSwapchain->Present(0, 0);
 	return true;
@@ -364,6 +572,12 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeShaderResourceView);
 	SecureRelease(pCubeRS);
 	
+
+	SecureRelease(pStar);
+	SecureRelease(pStar_inputLayout);
+	SecureRelease(pStar_indexBuffer);
+	SecureRelease(pStar_VSShader);
+	SecureRelease(pStar_PSShader);
 
 	SecureRelease(pRenderTargetView);
 	SecureRelease(pDepthStencilView);
