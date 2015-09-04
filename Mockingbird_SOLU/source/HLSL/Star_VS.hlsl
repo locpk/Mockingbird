@@ -10,7 +10,7 @@ struct V_OUT
 	float4 posH : SV_POSITION;
 	float4 color : COLOR;
 };
-cbuffer OBJECT : register(b2)
+cbuffer OBJECT : register(b0)
 {
 	float4x4 worldMatrix;
 }

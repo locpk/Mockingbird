@@ -12,7 +12,7 @@ using namespace DirectX;
 struct VERTEX
 {
 	XMFLOAT3 pos;
-	XMFLOAT2 uv;
+	XMFLOAT3 uv;
 	XMFLOAT3 normal;
 };
 

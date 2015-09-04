@@ -10,14 +10,15 @@ public:
 	ID3D11InputLayout* pGO_inputLayout = nullptr;
 	ID3D11PixelShader* pGO_PSShader = nullptr;
 	ID3D11VertexShader* pGO_VSShader = nullptr;
-	ID3D11Texture2D* pGO_Texture = nullptr;
-	ID3D11SamplerState* pGO_TextureSampler = nullptr;
 	ID3D11ShaderResourceView* pGO_ShaderResourceView = nullptr;
 	ID3D11RasterizerState* pGORSf = nullptr;
 	ID3D11RasterizerState* pGORSb = nullptr;
+	unsigned int Stride = sizeof(VERTEX);
+	string textureName;
 
 	ID3D11Device* DEVICE = nullptr;
-	GameObject(ID3D11Device  * _device, const BYTE* _VS);
+	GameObject();
+	void CreateGameObject(ID3D11Device  * _device, string _filepath, const BYTE * _VS, unsigned int _VSize);
 	~GameObject();
 };
 

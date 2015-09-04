@@ -83,7 +83,7 @@ namespace OBJLOADER
 			_model.push_back(temp);
 		}
 		//formating data
-
+		int i = 0;
 #pragma region Output Test
 	/*cout << "temp_vertices " << temp_vertices.size() << endl;
 	for (size_t i = 0; i < temp_vertices.size(); i++)

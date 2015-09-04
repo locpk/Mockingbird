@@ -282,7 +282,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	//Create Go Shaders
 	pDevice->CreateVertexShader(Cube_VS, sizeof(Cube_VS), NULL, &pGO_VSShader);
 	pDevice->CreatePixelShader(Cube_PS, sizeof(Cube_PS), NULL, &pGO_PSShader);
-	go = new GameObject(pDevice, Cube_VS);
+	go.CreateGameObject(pDevice, "heli.obj", Cube_VS, sizeof(Cube_VS));
 
 
 	//Load Cube
@@ -361,28 +361,8 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	constbufferSceneDesc.StructureByteStride = 0;
 	pDevice->CreateBuffer(&constbufferSceneDesc, NULL, &pConstantSceneBuffer);
 
-	//Create Cube texture
-	D3D11_TEXTURE2D_DESC cubeTextureDESC;
-	cubeTextureDESC.Width = numbers_test_width;
-	cubeTextureDESC.Height = numbers_test_height;
-	cubeTextureDESC.MipLevels = numbers_test_numlevels;
-	cubeTextureDESC.ArraySize = 1;
-	cubeTextureDESC.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	cubeTextureDESC.SampleDesc.Count = 1;
-	cubeTextureDESC.SampleDesc.Quality = 0;
-	cubeTextureDESC.Usage = D3D11_USAGE_DEFAULT;
-	cubeTextureDESC.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	cubeTextureDESC.CPUAccessFlags = 0;
-	cubeTextureDESC.MiscFlags = 0;
 
-	D3D11_SUBRESOURCE_DATA cubeTextureData[numbers_test_numlevels];
-	for (size_t i = 0; i < numbers_test_numlevels; i++)
-	{
-		cubeTextureData[i].pSysMem = &numbers_test_pixels[numbers_test_leveloffsets[i]];
-		cubeTextureData[i].SysMemPitch = (numbers_test_width >> i) * sizeof(unsigned int);
-	}
-
-	pDevice->CreateTexture2D(&cubeTextureDESC, cubeTextureData, &pCubeTexture);
+	CreateDDSTextureFromFile(pDevice,L"numbers_test.dds", NULL, &pCubeShaderResourceView);
 
 
 	//Create Cube Texture Sampler
@@ -394,17 +374,10 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	cubeTextureSamplerDESC.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 	cubeTextureSamplerDESC.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	cubeTextureSamplerDESC.MinLOD = 0;
-	cubeTextureSamplerDESC.MaxLOD = numbers_test_numlevels;
+	cubeTextureSamplerDESC.MaxLOD = D3D11_FLOAT32_MAX;
 
 	pDevice->CreateSamplerState(&cubeTextureSamplerDESC, &pCubeTextureSampler);
 
-	//Create Cube Shader Resource View
-	D3D11_SHADER_RESOURCE_VIEW_DESC CubeSRVDesc;
-	ZeroMemory(&CubeSRVDesc, sizeof(CubeSRVDesc));
-	CubeSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UINT;
-	CubeSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	CubeSRVDesc.Texture2D.MipLevels = numbers_test_numlevels;
-	pDevice->CreateShaderResourceView(pCubeTexture, NULL, &pCubeShaderResourceView);
 
 
 	//Create Cube RasterState
@@ -448,7 +421,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
 	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
 	another_camera.UpdateView();
-	
+	go.GO_worldMatrix = XMMatrixScaling(0.1f, 0.1f, 0.1f) *XMMatrixTranslation(0.0f, 2.0f, 0.0f);
 }
 
 DEMO::~DEMO()
@@ -548,11 +521,7 @@ bool DEMO::Run()
 
 	
 
-	D3D11_MAPPED_SUBRESOURCE mapObjectSubresource;
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	
 
 	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
 	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
@@ -560,17 +529,42 @@ bool DEMO::Run()
 	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
 
-	D3D11_MAPPED_SUBRESOURCE mapStarSubresource;
-	pDeviceContext->Map(pConstantStarBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapStarSubresource);
-	memcpy(mapStarSubresource.pData, &star_matrix, sizeof(star_matrix));
-	pDeviceContext->Unmap(pConstantStarBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(2, 1, &pConstantStarBuffer);
-
-
-
-
-	//Star
 	UINT offset = 0;
+	//Heli
+	D3D11_MAPPED_SUBRESOURCE mapObjectSubresource;
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &go.GO_worldMatrix, sizeof(go.GO_worldMatrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeviceContext->PSSetShaderResources(0, 1, &go.pGO_ShaderResourceView);
+	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
+	pDeviceContext->IASetVertexBuffers(0, 1, &go.pGOvertices, &go.Stride, &offset);
+	pDeviceContext->IASetInputLayout(go.pGO_inputLayout);
+	pDeviceContext->VSSetShader(pGO_VSShader, NULL, 0);
+	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
+	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeviceContext->RSSetState(go.pGORSf);
+	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
+	pDeviceContext->RSSetState(go.pGORSf);
+	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
+	
+
+
+
+
+
+
+	
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &star_matrix, sizeof(star_matrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	//Star
+	
 	UINT starStride = sizeof(MyVertex);
 	pDeviceContext->RSSetState(NULL);
 	pDeviceContext->IASetVertexBuffers(0, 1, &pStar, &starStride, &offset);
@@ -581,17 +575,14 @@ bool DEMO::Run()
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pDeviceContext->DrawIndexed(60, 0, 0);
 
-	go->GO_worldMatrix = XMMatrixIdentity();
-	//Go
-	UINT goStride = sizeof(VERTEX);
-	pDeviceContext->IASetVertexBuffers(0, 1, &go->pGOvertices, &starStride, &offset);
-	pDeviceContext->IASetInputLayout(go->pGO_inputLayout);
-	pDeviceContext->VSSetShader(pGO_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pDeviceContext->Draw(go->GOrawData.size(), 0);
+	
 
 
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 	//Cube
 	pDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
 	pDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
@@ -613,28 +604,50 @@ bool DEMO::Run()
 
 
 
-	pSwapchain->Present(0, 0);
+
 
 	//Second Viewport
 	scene._proj = another_camera.GetProj();
 	scene._view = another_camera.GetView();
 	pDeviceContext->RSSetViewports(1, &another_viewport);
 
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	
 
 	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
 	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
 	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
 
-	pDeviceContext->Map(pConstantStarBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapStarSubresource);
-	memcpy(mapStarSubresource.pData, &star_matrix, sizeof(star_matrix));
-	pDeviceContext->Unmap(pConstantStarBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(2, 1, &pConstantStarBuffer);
 
+
+
+	//Heli
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &go.GO_worldMatrix, sizeof(go.GO_worldMatrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeviceContext->PSSetShaderResources(0, 1, &go.pGO_ShaderResourceView);
+	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
+	pDeviceContext->IASetVertexBuffers(0, 1, &go.pGOvertices, &go.Stride, &offset);
+	pDeviceContext->IASetInputLayout(go.pGO_inputLayout);
+	pDeviceContext->VSSetShader(pGO_VSShader, NULL, 0);
+	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
+	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeviceContext->RSSetState(go.pGORSf);
+	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
+	pDeviceContext->RSSetState(go.pGORSf);
+	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
+
+
+
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &star_matrix, sizeof(star_matrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 	//Star
 	pDeviceContext->RSSetState(NULL);
 	pDeviceContext->IASetVertexBuffers(0, 1, &pStar, &starStride, &offset);
@@ -646,10 +659,15 @@ bool DEMO::Run()
 	pDeviceContext->DrawIndexed(60, 0, 0);
 
 
+
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 	//Cube
-
-
 	pDeviceContext->IASetVertexBuffers(0, 1, &pCube, &stride, &offset);
+	pDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
 	pDeviceContext->VSSetShader(pProjection_VSShader, NULL, 0);
 	pDeviceContext->PSSetShader(pCube_PSShader, NULL, 0);
 	pDeviceContext->IASetIndexBuffer(pCube_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
@@ -680,13 +698,11 @@ bool DEMO::ShutDown()
 	SecureRelease(pCube_indexBuffer);
 	SecureRelease(pCube_PSShader);
 	SecureRelease(pProjection_VSShader);
-	SecureRelease(pCubeTexture);
 	SecureRelease(pCubeTextureSampler);
 	SecureRelease(pCubeShaderResourceView);
 	SecureRelease(pCubeRSf);
 	SecureRelease(pCubeRSb);
-	delete go;
-
+	
 	SecureRelease(pStar);
 	SecureRelease(pStar_inputLayout);
 	SecureRelease(pStar_indexBuffer);

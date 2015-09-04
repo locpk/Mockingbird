@@ -20,5 +20,5 @@ struct P_IN
 
 float4 main(P_IN input) : SV_TARGET
 {
-	return float4(1.0,0.0,0.0,1.0);
+	return  baseTexture.Sample(filters, input.tex);
 }

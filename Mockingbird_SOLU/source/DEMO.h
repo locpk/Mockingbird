@@ -44,7 +44,6 @@ class DEMO
 	ID3D11InputLayout* pCube_inputLayout = nullptr;
 	ID3D11Buffer* pCube_indexBuffer = nullptr;
 	ID3D11PixelShader* pCube_PSShader = nullptr;
-	ID3D11Texture2D* pCubeTexture = nullptr;
 	ID3D11SamplerState* pCubeTextureSampler = nullptr;
 	ID3D11ShaderResourceView* pCubeShaderResourceView = nullptr;
 	ID3D11RasterizerState* pCubeRSf = nullptr;
@@ -59,7 +58,7 @@ class DEMO
 	ID3D11Buffer* pConstantStarBuffer = nullptr;
 
 	//GO
-	GameObject* go;
+	GameObject go;
 	ID3D11VertexShader* pGO_VSShader = nullptr;
 	ID3D11PixelShader* pGO_PSShader = nullptr;
 

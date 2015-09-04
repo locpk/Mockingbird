@@ -3,7 +3,7 @@
 struct V_IN
 {
 	float3 posL : POSITION;
-	float2 tex : TEXCOORD;
+	float3 tex : TEXCOORD;
 	float3 normal : NORMAL;
 };
 struct V_OUT
@@ -31,7 +31,8 @@ V_OUT main(V_IN input)
 	localH = mul(localH, viewMatrix);
 	localH = mul(localH, projectionMatrix);
 	output.posH = localH;
-	output.texOut = input.tex;
+	input.tex.y = 1 - input.tex.y;
+	output.texOut = input.tex.xy;
 	output.normalOut = input.normal;
 	return output; // send projected vertex to the rasterizer stage
 }
