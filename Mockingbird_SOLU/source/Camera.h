@@ -1,4 +1,5 @@
 #pragma once
+#include "Common_Header.h"
 #include "Define.h"
 class Camera
 {

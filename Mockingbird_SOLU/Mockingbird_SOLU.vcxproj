@@ -180,6 +180,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\Camera.h" />
+    <ClInclude Include="source\Common_Header.h" />
     <ClInclude Include="source\Cube.h" />
     <ClInclude Include="source\DDSTextureLoader.h" />
     <ClInclude Include="source\Define.h" />

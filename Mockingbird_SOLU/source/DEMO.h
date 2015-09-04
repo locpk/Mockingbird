@@ -1,45 +1,13 @@
 #pragma once
+#include "Common_Header.h"
 #include "Define.h"
+#include "XTime.h"
+#include "DDSTextureLoader.h"
 #include "Camera.h"
 
-struct Object
-{
-	XMMATRIX _translation;
-};
-
-struct MyVertex
-{
-	XMFLOAT4  pos;
-	XMFLOAT4  color;
-	unsigned int u;
-	unsigned int v;
-};
-struct Scene
-{
-	XMMATRIX _view;
-	XMMATRIX _proj;
-};
 
 
-struct VERTEX
-{
-	union
-	{
-		float xyzw[4];
-		struct
-		{
-			float _x, _y, _z, _w;
-		};
-	};
-	float _u;
-	float _v;
 
-};
-
-struct Triangle
-{
-	VERTEX v[3];
-};
 
 class DEMO
 {

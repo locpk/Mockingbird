@@ -1,7 +1,6 @@
 #include "Camera.h"
 
 
-
 Camera::Camera() : up(0.0f, 1.0f, 0.0f), side(1.0f, 0.0f, 0.0f), forward(0.0f, 0.0f, 1.0f), position(0.0f, 1.0f, -10.0f)
 {
 	XMFLOAT3 focus { 0.0f,0.0f,1.0f };

@@ -8,7 +8,6 @@
 #include "CSH\Star_PS.csh"
 #include "CSH\SkyBox_VS.csh"
 #include "CSH\SkyBox_PS.csh"
-#include "vld.h"
 
 //Helper Fuctions
 MyVertex* CreateStar()
