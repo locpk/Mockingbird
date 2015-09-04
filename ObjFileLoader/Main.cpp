@@ -14,56 +14,56 @@ void main()
 	vector<XMFLOAT3> temp_vertices;
 	vector<XMFLOAT2> temp_uvs;
 	vector<XMFLOAT3> temp_normals;
-	FILE * file = fopen("test pyramid.obj", "r");
-	if (file == NULL)
+	string filepath = "test pyramid.obj";
+	ifstream fin(filepath.c_str());
+	if (fin.is_open())
 	{
-		printf("Impossible to open the file !\n");
-		return;
+		while (fin)
+		{
+			char letter = fin.get();
+			switch (letter)
+			{
+			case '#':
+				while (letter != '\n')
+					letter = fin.get();
+				break;
+			case 'v':
+				letter = fin.get();
+				if (letter == ' ')
+				{
+					float x, y, z;
+					fin >> x >> y >> z;
+					temp_vertices.push_back(XMFLOAT3(x, y, z));
+				}
+				if (letter == 't')
+				{
+					float u,v;
+					fin >> u >> v;
+					temp_uvs.push_back(XMFLOAT2(u,v));
+				}
+				else if (letter == 'n')
+				{
+					float x, y, z;
+					fin >> x >> y >> z;
+					temp_normals.push_back(XMFLOAT3(x, y, z));
+				}
+				break;
+			case 'f':
+				unsigned int vun[9];
+				fin >> vun[0] >> vun[1] >> vun[2] >> vun[3] >> vun[4] >> vun[5] >> vun[6] >> vun[7] >> vun[8];
+				/*vertexIndices
+					uvIndices
+					normalIndices*/
+
+				while (letter != '\n')
+					letter = fin.get();
+				break;
+			default:
+				break;
+			}
+		}
+		fin.close();
 	}
 
-	while (1)
-	{
-
-		char lineHeader[128];
-		// read the first word of the line
-		int res = fscanf(file, "%s", lineHeader);
-		if (res == EOF)
-			break; // EOF = End Of File. Quit the loop.
-		if (strcmp(lineHeader, "v") == 0) {
-			XMFLOAT3 vertex;
-			fscanf(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
-			temp_vertices.push_back(vertex);
-		}
-		else if (strcmp(lineHeader, "vt") == 0) 
-		{
-			XMFLOAT2 uv;
-			fscanf(file, "%f %f\n", &uv.x, &uv.y);
-			temp_uvs.push_back(uv);
-		}
-		else if (strcmp(lineHeader, "vn") == 0)
-		{
-			XMFLOAT3 normal;
-			fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
-			temp_normals.push_back(normal);
-		}
-		else if (strcmp(lineHeader, "f") == 0) 
-		{
-			std::string vertex1, vertex2, vertex3;
-			unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
-			int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0], &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2], &normalIndex[2]);
-			if (matches != 9) {
-				printf("File can't be read by our simple parser : ( Try exporting with other options\n");
-				return;
-			}
-			vertexIndices.push_back(vertexIndex[0]);
-			vertexIndices.push_back(vertexIndex[1]);
-			vertexIndices.push_back(vertexIndex[2]);
-			uvIndices.push_back(uvIndex[0]);
-			uvIndices.push_back(uvIndex[1]);
-			uvIndices.push_back(uvIndex[2]);
-			normalIndices.push_back(normalIndex[0]);
-			normalIndices.push_back(normalIndex[1]);
-			normalIndices.push_back(normalIndex[2]);
-		}
-
-		}
+	//main
+}

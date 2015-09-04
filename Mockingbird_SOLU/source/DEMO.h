@@ -65,7 +65,6 @@ class DEMO
 	//D3D11 Stack Variables
 	D3D11_VIEWPORT viewport;
 	D3D11_VIEWPORT another_viewport;
-	D3D11_VIEWPORT* current_viewport;
 	D3D_FEATURE_LEVEL featureLevel;
 
 
