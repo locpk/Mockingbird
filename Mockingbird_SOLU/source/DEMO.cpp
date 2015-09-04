@@ -466,7 +466,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	GetCursorPos(&lastPos);
 	cube_matrix._translation = /*XMMatrixTranslation(0.0f, 2.0f, 0.0f) * */XMMatrixIdentity();
 	star_matrix._translation = XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
-	skyCube_matrix._translation = XMMatrixIdentity();
+
 	another_camera.SetPosition({ 5.0f, 1.0f, -20.0f });
 	camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
 	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
@@ -708,9 +708,6 @@ bool DEMO::ShutDown()
 	SecureRelease(pConstantObjectBuffer);
 	SecureRelease(pConstantSceneBuffer);
 	SecureRelease(pBlendState);
-
-	SecureRelease(pSkyBoxTexture);
-	SecureRelease(pSkyBoxSRV);
 
 
 	SecureRelease(pDeviceContext);

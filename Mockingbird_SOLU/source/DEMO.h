@@ -86,17 +86,7 @@ class DEMO
 	ID3D11Buffer* pStar_indexBuffer = nullptr;
 	ID3D11VertexShader* pStar_VSShader = nullptr;
 	ID3D11PixelShader* pStar_PSShader = nullptr;
-
 	ID3D11Buffer* pConstantStarBuffer = nullptr;
-
-	//Skybox
-	ID3D11Resource* pSkyBoxTexture = nullptr;
-	ID3D11ShaderResourceView* pSkyBoxSRV = nullptr;
-	ID3D11InputLayout* pSkyBox_inputLayout = nullptr;
-	Object skyCube_matrix;
-	ID3D11Buffer* pSkyCube = nullptr;
-	ID3D11VertexShader* pSkymap_VS = nullptr;
-	ID3D11PixelShader* pSkymap_PS = nullptr;
 
 	//Scene
 	Scene scene;
