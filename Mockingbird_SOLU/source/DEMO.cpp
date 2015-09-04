@@ -1,13 +1,12 @@
 #include "DEMO.h"
-
 #include "Cube.h"
 #include "numbers_test.h"
 #include "CSH\Projection_VS.csh"
 #include "CSH\Trivial_PS.csh"
 #include "CSH\Star_VS.csh"
 #include "CSH\Star_PS.csh"
-#include "CSH\SkyBox_VS.csh"
-#include "CSH\SkyBox_PS.csh"
+#include "CSH\Cube_VS.csh"
+#include "CSH\Cube_PS.csh"
 
 //Helper Fuctions
 MyVertex* CreateStar()
@@ -176,34 +175,6 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 
 
 
-	//Load Sky box
-	//CreateDDSTextureFromFile(pDevice, L"..\\asset\\SkyboxOcean.dds", &pSkyBoxTexture, &pSkyBoxSRV);
-	//Create Sky Cube
-
-	//D3D11_BUFFER_DESC skyBoxBufferDesc;
-	//ZeroMemory(&skyBoxBufferDesc, sizeof(skyBoxBufferDesc));
-	//skyBoxBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	//skyBoxBufferDesc.ByteWidth = sizeof(float) * 36;
-	//skyBoxBufferDesc.CPUAccessFlags = NULL;
-	//skyBoxBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	//skyBoxBufferDesc.MiscFlags = 0;
-	//skyBoxBufferDesc.StructureByteStride = 0;
-	//D3D11_SUBRESOURCE_DATA skyBoxVerticesData;
-	//ZeroMemory(&skyBoxVerticesData, sizeof(skyBoxVerticesData));
-	//skyBoxVerticesData.pSysMem = tri;
-	//pDevice->CreateBuffer(&skyBoxBufferDesc, &skyBoxVerticesData, &pSkyCube);
-
-	//pDevice->CreateVertexShader(SkyBox_VS, sizeof(SkyBox_VS), NULL, &pSkymap_VS);
-	//pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pSkymap_PS);
-
-	//D3D11_INPUT_ELEMENT_DESC skyBoxInputLayout[] =
-	//{
-	//	{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	//	{ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	//};
-	//pDevice->CreateInputLayout(skyBoxInputLayout, 2, SkyBox_VS, sizeof(SkyBox_VS), &pSkyBox_inputLayout);
-	//
-
 	//Load Star
 	MyVertex* star = CreateStar();
 	D3D11_BUFFER_DESC starBufferDesc;
@@ -305,6 +276,13 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&starIndexBufferData, sizeof(starIndexBufferData));
 	starIndexBufferData.pSysMem = starIndex;
 	pDevice->CreateBuffer(&starIndexBufferDesc, &starIndexBufferData, &pStar_indexBuffer);
+
+	//GO
+
+	//Create Go Shaders
+	pDevice->CreateVertexShader(Cube_VS, sizeof(Cube_VS), NULL, &pGO_VSShader);
+	pDevice->CreatePixelShader(Cube_PS, sizeof(Cube_PS), NULL, &pGO_PSShader);
+	go = new GameObject(pDevice, Cube_VS);
 
 
 	//Load Cube
@@ -463,14 +441,13 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 
 
 	GetCursorPos(&lastPos);
-	cube_matrix._translation = /*XMMatrixTranslation(0.0f, 2.0f, 0.0f) * */XMMatrixIdentity();
-	star_matrix._translation = XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
+	cube_matrix = /*XMMatrixTranslation(0.0f, 2.0f, 0.0f) * */XMMatrixIdentity();
+	star_matrix = XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
 
 	another_camera.SetPosition({ 5.0f, 1.0f, -20.0f });
 	camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
 	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
 	another_camera.UpdateView();
-	current_camera = &camera;
 	
 }
 
@@ -491,58 +468,65 @@ bool DEMO::Run()
 		timer = 0;
 		XMMATRIX rotY = XMMatrixRotationY(XMConvertToRadians(1.0f));
 		XMMATRIX rotYN = XMMatrixRotationY(XMConvertToRadians(-1.0f));
-		cube_matrix._translation = rotY * cube_matrix._translation;
-		star_matrix._translation = rotYN * star_matrix._translation;
+		cube_matrix = rotY * cube_matrix;
+		star_matrix = rotYN * star_matrix;
 	}
-	SHORT left, right, up, down, shift, w, a, s, d;
-	left = GetAsyncKeyState(VK_LEFT) & 0x1;
-	a = GetAsyncKeyState('A') & 0x1;
-	right = GetAsyncKeyState(VK_RIGHT) & 0x1;
-	d = GetAsyncKeyState('D') & 0x1;
-	up = GetAsyncKeyState(VK_UP) & 0x1;
-	w = GetAsyncKeyState('W') & 0x1;
-	down = GetAsyncKeyState(VK_DOWN) & 0x1;
-	s = GetAsyncKeyState('S') & 0x1;
-	shift = GetAsyncKeyState(VK_SHIFT);
-	if (left || a)
+	if (current_camera)
 	{
-		current_camera->Stafe(-(float)xTime.Delta() * 500);
-	}
+		SHORT left, right, up, down, shift, w, a, s, d;
+		left = GetAsyncKeyState(VK_LEFT) & 0x1;
+		a = GetAsyncKeyState('A') & 0x1;
+		right = GetAsyncKeyState(VK_RIGHT) & 0x1;
+		d = GetAsyncKeyState('D') & 0x1;
+		up = GetAsyncKeyState(VK_UP) & 0x1;
+		w = GetAsyncKeyState('W') & 0x1;
+		down = GetAsyncKeyState(VK_DOWN) & 0x1;
+		s = GetAsyncKeyState('S') & 0x1;
+		shift = GetAsyncKeyState(VK_SHIFT);
+		if (left || a)
+		{
+			current_camera->Stafe(-(float)xTime.Delta() * 500);
+		}
 
-	if (right || d)
+		if (right || d)
+		{
+			current_camera->Stafe((float)xTime.Delta() * 500);
+		}
+
+		if (up || w)
+		{
+			current_camera->Walk((float)xTime.Delta() * 500);
+		}
+
+		if (down || s)
+		{
+			current_camera->Walk(-(float)xTime.Delta() * 500);
+		}
+
+		if (shift && up)
+		{
+			current_camera->Climb((float)xTime.Delta() * 500);
+		}
+
+		if (shift && down)
+		{
+			current_camera->Climb(-(float)xTime.Delta() * 500);
+		}
+
+
+		GetCursorPos(&CurPos);
+		if (/*GetAsyncKeyState(VK_LBUTTON) &&*/ (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
+		{
+			current_camera->Pitch(0.15f*(CurPos.y - lastPos.y));
+			current_camera->RotateY(0.15f*(CurPos.x - lastPos.x));
+			lastPos.x = CurPos.x;
+			lastPos.y = CurPos.y;
+		}
+	}
+	if (GetAsyncKeyState('K') & 0x1)
 	{
-		current_camera->Stafe((float)xTime.Delta() * 500);
+		current_camera = nullptr;
 	}
-
-	if (up || w)
-	{
-		current_camera->Walk((float)xTime.Delta() * 500);
-	}
-
-	if (down || s)
-	{
-		current_camera->Walk(-(float)xTime.Delta() * 500);
-	}
-
-	if (shift && up)
-	{
-		current_camera->Climb((float)xTime.Delta() * 500);
-	}
-
-	if (shift && down)
-	{
-		current_camera->Climb(-(float)xTime.Delta() * 500);
-	}
-
-	GetCursorPos(&CurPos);
-	if (/*GetAsyncKeyState(VK_LBUTTON) &&*/ (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
-	{
-		current_camera->Pitch(0.15f*(CurPos.y - lastPos.y));
-		current_camera->RotateY(0.15f*(CurPos.x - lastPos.x));
-		lastPos.x = CurPos.x;
-		lastPos.y = CurPos.y;
-	}
-
 	if (GetAsyncKeyState('N') & 0x1)
 	{
 		current_camera = &another_camera;
@@ -558,7 +542,7 @@ bool DEMO::Run()
 
 
 	//Clear background
-	float clearColours[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float clearColours[] = { 0.5f, 0.5f, 0.5f, 1.0f };
 	pDeviceContext->ClearRenderTargetView(pRenderTargetView, clearColours);
 	pDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
@@ -596,6 +580,16 @@ bool DEMO::Run()
 	pDeviceContext->IASetInputLayout(pStar_inputLayout);
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pDeviceContext->DrawIndexed(60, 0, 0);
+
+	go->GO_worldMatrix = XMMatrixIdentity();
+	//Go
+	UINT goStride = sizeof(VERTEX);
+	pDeviceContext->IASetVertexBuffers(0, 1, &go->pGOvertices, &starStride, &offset);
+	pDeviceContext->IASetInputLayout(go->pGO_inputLayout);
+	pDeviceContext->VSSetShader(pGO_VSShader, NULL, 0);
+	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
+	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pDeviceContext->Draw(go->GOrawData.size(), 0);
 
 
 	//Cube
@@ -653,9 +647,7 @@ bool DEMO::Run()
 
 
 	//Cube
-	pDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
-	pDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
-	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
+
 
 	pDeviceContext->IASetVertexBuffers(0, 1, &pCube, &stride, &offset);
 	pDeviceContext->VSSetShader(pProjection_VSShader, NULL, 0);
@@ -693,7 +685,7 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeShaderResourceView);
 	SecureRelease(pCubeRSf);
 	SecureRelease(pCubeRSb);
-
+	delete go;
 
 	SecureRelease(pStar);
 	SecureRelease(pStar_inputLayout);

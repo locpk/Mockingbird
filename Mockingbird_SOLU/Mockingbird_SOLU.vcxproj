@@ -175,6 +175,7 @@
     <ClCompile Include="source\Camera.cpp" />
     <ClCompile Include="source\DDSTextureLoader.cpp" />
     <ClCompile Include="source\DEMO.cpp" />
+    <ClCompile Include="source\GameObject.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\XTime.cpp" />
   </ItemGroup>
@@ -185,7 +186,9 @@
     <ClInclude Include="source\DDSTextureLoader.h" />
     <ClInclude Include="source\Define.h" />
     <ClInclude Include="source\DEMO.h" />
+    <ClInclude Include="source\GameObject.h" />
     <ClInclude Include="source\numbers_test.h" />
+    <ClInclude Include="source\ObjLoader.h" />
     <ClInclude Include="source\XTime.h" />
   </ItemGroup>
   <ItemGroup>

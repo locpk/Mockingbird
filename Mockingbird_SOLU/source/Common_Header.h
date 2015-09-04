@@ -1,6 +1,10 @@
 #pragma once
 //General Header files include
 #include <d3d11.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
 #include <DirectXMath.h>
 using namespace std;
 using namespace DirectX;
@@ -12,10 +16,7 @@ struct VERTEX
 	XMFLOAT3 normal;
 };
 
-struct Object
-{
-	XMMATRIX _translation;
-};
+
 
 struct MyVertex
 {

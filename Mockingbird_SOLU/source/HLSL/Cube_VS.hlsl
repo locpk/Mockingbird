@@ -3,13 +3,13 @@
 struct V_IN
 {
 	float3 posL : POSITION;
-	float3 tex : TEXCOORD;
+	float2 tex : TEXCOORD;
 	float3 normal : NORMAL;
 };
 struct V_OUT
 {
 	float4 posH : SV_POSITION;
-	float3 texOut : TEXCOORD;
+	float2 texOut : TEXCOORD;
 	float3 normalOut  : NORMAL;
 };
 cbuffer OBJECT : register(b0)
@@ -25,6 +25,7 @@ V_OUT main(V_IN input)
 {
 
 	V_OUT output = (V_OUT)0;
+	// ensures translation is preserved during matrix multiply  
 	float4 localH = float4(input.posL, 1);
 	localH = mul(localH, worldMatrix);
 	localH = mul(localH, viewMatrix);
@@ -32,5 +33,5 @@ V_OUT main(V_IN input)
 	output.posH = localH;
 	output.texOut = input.tex;
 	output.normalOut = input.normal;
-	return output; 
+	return output; // send projected vertex to the rasterizer stage
 }

@@ -14,17 +14,11 @@ cbuffer SCENE : register(b0)
 struct P_IN
 {
 	float4 posH : SV_POSITION;
-	float3 tex : TEXCOORD;
+	float2 tex : TEXCOORD;
 	float3 normal  : NORMAL;
 };
 
 float4 main(P_IN input) : SV_TARGET
 {
-	float4 diffuse = baseTexture.Sample(filters, input.tex.xy);
-	float4 colorSwap;
-	colorSwap.a = diffuse.b;
-	colorSwap.r = diffuse.g;
-	colorSwap.g = diffuse.r;
-	colorSwap.b = diffuse.a;
-	return colorSwap;
+	return float4(1.0,0.0,0.0,1.0);
 }

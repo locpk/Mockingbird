@@ -4,6 +4,8 @@
 #include "XTime.h"
 #include "DDSTextureLoader.h"
 #include "Camera.h"
+#include "GameObject.h"
+
 
 
 
@@ -37,7 +39,7 @@ class DEMO
 
 
 	//Game Objects
-	Object cube_matrix;
+	XMMATRIX cube_matrix;
 	ID3D11Buffer* pCube = nullptr;
 	ID3D11InputLayout* pCube_inputLayout = nullptr;
 	ID3D11Buffer* pCube_indexBuffer = nullptr;
@@ -48,13 +50,19 @@ class DEMO
 	ID3D11RasterizerState* pCubeRSf = nullptr;
 	ID3D11RasterizerState* pCubeRSb = nullptr;
 
-	Object star_matrix;
+	XMMATRIX star_matrix;
 	ID3D11Buffer* pStar = nullptr;
 	ID3D11InputLayout* pStar_inputLayout = nullptr;
 	ID3D11Buffer* pStar_indexBuffer = nullptr;
 	ID3D11VertexShader* pStar_VSShader = nullptr;
 	ID3D11PixelShader* pStar_PSShader = nullptr;
 	ID3D11Buffer* pConstantStarBuffer = nullptr;
+
+	//GO
+	GameObject* go;
+	ID3D11VertexShader* pGO_VSShader = nullptr;
+	ID3D11PixelShader* pGO_PSShader = nullptr;
+
 
 	//Scene
 	Scene scene;
