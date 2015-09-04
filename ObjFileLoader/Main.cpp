@@ -6,10 +6,17 @@
 using namespace std;
 using namespace DirectX;
 
+
+struct VERTEX
+{
+	XMFLOAT3 pos;
+	XMFLOAT2 uv;
+	XMFLOAT3 normal;
+};
 void main()
 {
 
-
+	vector<VERTEX> myshape;
 	vector<unsigned int> vertexIndices, uvIndices, normalIndices;
 	vector<XMFLOAT3> temp_vertices;
 	vector<XMFLOAT2> temp_uvs;
@@ -51,7 +58,7 @@ void main()
 				break;
 			case 'f':
 				unsigned int vun[9];
-				fin >> vun[0] >> dim >>  vun[1] >> dim >> vun[2] >> vun[3] >> dim >> vun[4] >> dim >> vun[5] >> vun[6] >> dim >> vun[7] >> dim >> vun[8];
+				fin >> vun[0] >> dim >> vun[1] >> dim >> vun[2] >> vun[3] >> dim >> vun[4] >> dim >> vun[5] >> vun[6] >> dim >> vun[7] >> dim >> vun[8];
 				vertexIndices.push_back(vun[0]);
 				vertexIndices.push_back(vun[3]);
 				vertexIndices.push_back(vun[6]);
@@ -69,6 +76,21 @@ void main()
 		}
 		fin.close();
 	}
+
+
+	for (size_t i = 0; i < vertexIndices.size(); i++)
+	{
+		VERTEX temp;
+		unsigned int index = vertexIndices[i];
+		temp.pos = temp_vertices[index - 1];
+		index = uvIndices[i];
+		temp.uv = temp_uvs[index - 1];
+		index = normalIndices[i];
+		temp.normal = temp_normals[index - 1];
+		myshape.push_back(temp);
+	}
+
+	int i = 0;
 
 	//formating data
 
