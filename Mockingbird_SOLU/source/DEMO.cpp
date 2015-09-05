@@ -130,6 +130,8 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 		&pDeviceContext);
 
 
+
+
 	//Create Render Target View from back buffer
 	ID3D11Texture2D* pBackBuffer = nullptr;
 	pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
@@ -417,16 +419,18 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	cube_matrix = /*XMMatrixTranslation(0.0f, 2.0f, 0.0f) * */XMMatrixIdentity();
 	star_matrix = XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
 
-	another_camera.SetPosition({ 5.0f, 1.0f, -20.0f });
-	camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
 	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
+	another_camera.SetPosition({ 10.0f, 1.0f, 0.0f });
+	another_camera.RotateY(-90.0f);
 	another_camera.UpdateView();
+	camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
 	go.GO_worldMatrix = XMMatrixScaling(0.1f, 0.1f, 0.1f) *XMMatrixTranslation(0.0f, 2.0f, 0.0f);
 }
 
 DEMO::~DEMO()
 {
-	ShutDown();
+	
+	
 }
 
 
@@ -486,7 +490,6 @@ bool DEMO::Run()
 			current_camera->Climb(-(float)xTime.Delta() * 500);
 		}
 
-
 		GetCursorPos(&CurPos);
 		if (/*GetAsyncKeyState(VK_LBUTTON) &&*/ (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
 		{
@@ -502,10 +505,12 @@ bool DEMO::Run()
 	}
 	if (GetAsyncKeyState('N') & 0x1)
 	{
+		GetCursorPos(&lastPos);
 		current_camera = &another_camera;
 	}
 	else if (GetAsyncKeyState('O') & 0x1)
 	{
+		GetCursorPos(&lastPos);
 		current_camera = &camera;
 	}
 	scene._proj = camera.GetProj();
@@ -518,7 +523,7 @@ bool DEMO::Run()
 	float clearColours[] = { 0.5f, 0.5f, 0.5f, 1.0f };
 	pDeviceContext->ClearRenderTargetView(pRenderTargetView, clearColours);
 	pDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
+	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
 	
 
 	
@@ -539,7 +544,6 @@ bool DEMO::Run()
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
 	pDeviceContext->PSSetShaderResources(0, 1, &go.pGO_ShaderResourceView);
-	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
 	pDeviceContext->IASetVertexBuffers(0, 1, &go.pGOvertices, &go.Stride, &offset);
 	pDeviceContext->IASetInputLayout(go.pGO_inputLayout);
 	pDeviceContext->VSSetShader(pGO_VSShader, NULL, 0);
@@ -586,7 +590,6 @@ bool DEMO::Run()
 	//Cube
 	pDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
 	pDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
-	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
 	UINT stride = sizeof(_OBJ_VERT_);
 
 	pDeviceContext->IASetVertexBuffers(0, 1, &pCube, &stride, &offset);
@@ -611,7 +614,7 @@ bool DEMO::Run()
 	scene._view = another_camera.GetView();
 	pDeviceContext->RSSetViewports(1, &another_viewport);
 
-	
+
 
 	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
 	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
@@ -629,7 +632,7 @@ bool DEMO::Run()
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
 	pDeviceContext->PSSetShaderResources(0, 1, &go.pGO_ShaderResourceView);
-	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
+	
 	pDeviceContext->IASetVertexBuffers(0, 1, &go.pGOvertices, &go.Stride, &offset);
 	pDeviceContext->IASetInputLayout(go.pGO_inputLayout);
 	pDeviceContext->VSSetShader(pGO_VSShader, NULL, 0);
@@ -703,6 +706,9 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeRSf);
 	SecureRelease(pCubeRSb);
 	
+
+	SecureRelease(pGO_VSShader);
+	SecureRelease(pGO_PSShader);
 	SecureRelease(pStar);
 	SecureRelease(pStar_inputLayout);
 	SecureRelease(pStar_indexBuffer);
@@ -721,6 +727,11 @@ bool DEMO::ShutDown()
 	SecureRelease(pSwapchain);
 	SecureRelease(pDevice);
 
+	if (s_pInstance)
+	{
+		delete s_pInstance;
+		s_pInstance = nullptr;
+	}
 	return true;
 }
 

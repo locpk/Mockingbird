@@ -33,7 +33,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPTSTR, int)
 			DispatchMessage(&msg);
 		}
 	}
-
+	gDemo->ShutDown();
 	return 0;
 }
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -43,6 +43,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case (WM_DESTROY) : { PostQuitMessage(0); }
+						
 						break;
 	case (WM_SIZE) :
 	{
