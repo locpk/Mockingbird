@@ -63,6 +63,10 @@ class DEMO
 	ID3D11VertexShader* pGO_VSShader = nullptr;
 	ID3D11PixelShader* pGO_PSShader = nullptr;
 
+	GameObject skybox;
+	ID3D11VertexShader* pskybox_VSShader = nullptr;
+	ID3D11PixelShader* pskybox_PSShader = nullptr;
+
 
 	//Scene
 	Scene scene;

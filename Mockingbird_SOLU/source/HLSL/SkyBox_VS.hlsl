@@ -1,6 +1,17 @@
-
-
-cbuffer OBJECT : register(b2)
+#pragma pack_matrix(row_major)
+struct V_IN
+{
+	float3 posL : POSITION;
+	float3 tex : TEXCOORD;
+	float3 normal : NORMAL;
+};
+struct V_OUT
+{
+	float4 posH : SV_POSITION;
+	float4 texOut : TEXCOORD;
+	float3 normalOut  : NORMAL;
+};
+cbuffer OBJECT : register(b0)
 {
 	float4x4 worldMatrix;
 }
@@ -10,20 +21,18 @@ cbuffer SCENE : register(b1)
 	float4x4 projectionMatrix;
 }
 
-struct VS_OUTPUT
+V_OUT main(V_IN input)
 {
-	float4 Pos : SV_POSITION;
-	float3 texCoord : TEXCOORD;
-};
 
-VS_OUTPUT main(float4 inPos : POSITION, float2 inTexCoord : TEXCOORD)
-{
-	VS_OUTPUT output = (VS_OUTPUT)0;
-	float4 local = float4(inPos);
-	local = mul(local, worldMatrix);
-	local = mul(local, viewMatrix);
-	local = mul(local, projectionMatrix);
-	output.Pos = local.xyww;
-	output.texCoord = inPos;
-	return output;
+	V_OUT output = (V_OUT)0;
+	// ensures translation is preserved during matrix multiply  
+	float4 localH = float4(input.posL, 1);
+	localH = mul(localH, worldMatrix);
+	localH = mul(localH, viewMatrix);
+	localH = mul(localH, projectionMatrix);
+	output.posH = localH;
+
+	output.texOut = localH;
+	output.normalOut = input.normal;
+	return output; // send projected vertex to the rasterizer stage
 }

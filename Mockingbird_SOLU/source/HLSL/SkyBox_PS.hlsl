@@ -1,16 +1,19 @@
 
+#pragma pack_matrix(row_major)
 
-TextureCube skybox;
-SamplerState samplerstate;
+TextureCube baseTexture : register(t0);
+
+
+SamplerState filters : register(s0);
 
 struct P_IN
 {
-	float4 Pos : SV_POSITION;
-	float3 texCoord : TEXCOORD;
+	float4 posH : SV_POSITION;
+	float3 tex : TEXCOORD;
+	float3 normal  : NORMAL;
 };
-
 float4 main(P_IN input) : SV_TARGET
 {
 
-	return skybox.Sample(samplerstate,input.texCoord);
+	return baseTexture.Sample(filters,input.tex);
 }

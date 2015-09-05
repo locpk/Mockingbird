@@ -7,6 +7,8 @@
 #include "CSH\Star_PS.csh"
 #include "CSH\Cube_VS.csh"
 #include "CSH\Cube_PS.csh"
+#include "CSH\SkyBox_VS.csh"
+#include "CSH\SkyBox_PS.csh"
 
 //Helper Fuctions
 MyVertex* CreateStar()
@@ -286,6 +288,10 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreatePixelShader(Cube_PS, sizeof(Cube_PS), NULL, &pGO_PSShader);
 	go.CreateGameObject(pDevice, "heli.obj", Cube_VS, sizeof(Cube_VS));
 
+	pDevice->CreateVertexShader(SkyBox_VS, sizeof(SkyBox_VS), NULL, &pskybox_VSShader);
+	pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pskybox_PSShader);
+	skybox.CreateGameObject(pDevice, "skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
+	skybox.GO_worldMatrix = XMMatrixIdentity();
 
 	//Load Cube
 	D3D11_BUFFER_DESC cubeBufferDesc;
@@ -416,7 +422,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 
 
 	GetCursorPos(&lastPos);
-	cube_matrix = /*XMMatrixTranslation(0.0f, 2.0f, 0.0f) * */XMMatrixIdentity();
+	cube_matrix = XMMatrixIdentity();
 	star_matrix = XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
 
 	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
@@ -552,10 +558,27 @@ bool DEMO::Run()
 
 	pDeviceContext->RSSetState(go.pGORSf);
 	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
-	pDeviceContext->RSSetState(go.pGORSf);
+	pDeviceContext->RSSetState(go.pGORSb);
 	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
 	
 
+
+	//Skybox
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &skybox.GO_worldMatrix, sizeof(skybox.GO_worldMatrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeviceContext->PSSetShaderResources(0, 1, &skybox.pGO_ShaderResourceView);
+	pDeviceContext->IASetVertexBuffers(0, 1, &skybox.pGOvertices, &skybox.Stride, &offset);
+	pDeviceContext->IASetInputLayout(skybox.pGO_inputLayout);
+	pDeviceContext->VSSetShader(pskybox_VSShader, NULL, 0);
+	pDeviceContext->PSSetShader(pskybox_PSShader, NULL, 0);
+	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeviceContext->RSSetState(skybox.pGORSb);
+	pDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
 
 
 
@@ -709,6 +732,8 @@ bool DEMO::ShutDown()
 
 	SecureRelease(pGO_VSShader);
 	SecureRelease(pGO_PSShader);
+	SecureRelease(pskybox_VSShader);
+	SecureRelease(pskybox_PSShader);
 	SecureRelease(pStar);
 	SecureRelease(pStar_inputLayout);
 	SecureRelease(pStar_indexBuffer);
