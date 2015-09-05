@@ -860,6 +860,7 @@ void DEMO::ResizeWindow(UINT _width, UINT _height)
 		another_camera.UpdateProjection(60.0f, (float)_width / 2.0f, (float)_height, NEAR_PLANE, FAR_PLANE);
 		viewport.Width = (float)_width / 2.0f;
 		viewport.Height = (float)_height;
+		another_viewport.TopLeftX = (float)_width / 2.0f;
 		another_viewport.Width = (float)_width / 2.0f;
 		another_viewport.Height = (float)_height;
 		pDeviceContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);

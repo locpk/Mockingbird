@@ -49,8 +49,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		RECT rc;
 		GetClientRect(hWnd, &rc);
-		UINT width = rc.right - rc.left;
-		UINT height = rc.bottom - rc.top;
+		UINT width = rc.right;
+		UINT height = rc.bottom;
 		if (gDemo)
 		{
 			gDemo->ResizeWindow(width, height);
