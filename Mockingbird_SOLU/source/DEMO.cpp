@@ -295,7 +295,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateVertexShader(SkyBox_VS, sizeof(SkyBox_VS), NULL, &pskybox_VSShader);
 	pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pskybox_PSShader);
 	skybox.CreateGameObject(pDevice, "skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
-	skybox.GO_worldMatrix = XMMatrixIdentity();
+	skybox.GO_worldMatrix =  XMMatrixIdentity();
 
 	//Load Cube
 	D3D11_BUFFER_DESC cubeBufferDesc;
@@ -429,11 +429,11 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	cube_matrix = XMMatrixIdentity();
 	star_matrix = XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
 
-	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
+	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height,NEAR_PLANE, FAR_PLANE);
 	another_camera.SetPosition({ 10.0f, 1.0f, 0.0f });
 	another_camera.RotateY(-90.0f);
 	another_camera.UpdateView();
-	camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, 0.1f, 100.0f);
+	camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, NEAR_PLANE, FAR_PLANE);
 	go.GO_worldMatrix = XMMatrixScaling(0.1f, 0.1f, 0.1f) *XMMatrixTranslation(0.0f, 2.0f, 0.0f);
 	ground.GO_worldMatrix = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
 }
@@ -532,7 +532,7 @@ bool DEMO::Run()
 	scene._proj = camera.GetProj();
 	scene._view = camera.GetView();
 	pDeviceContext->RSSetViewports(1, &viewport);
-	skybox.GO_worldMatrix = XMMatrixTranslation(camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+	skybox.GO_worldMatrix = XMMatrixScaling(5.0f, 5.0f, 5.0f) * XMMatrixTranslation(camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 
 
 	//Clear background
@@ -665,7 +665,7 @@ bool DEMO::Run()
 	scene._proj = another_camera.GetProj();
 	scene._view = another_camera.GetView();
 	pDeviceContext->RSSetViewports(1, &another_viewport);
-	skybox.GO_worldMatrix = XMMatrixTranslation(another_camera.GetPosition().x, another_camera.GetPosition().y, another_camera.GetPosition().z);
+	skybox.GO_worldMatrix = XMMatrixScaling(5.0f, 5.0f, 5.0f) * XMMatrixTranslation(another_camera.GetPosition().x, another_camera.GetPosition().y, another_camera.GetPosition().z);
 
 
 	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
@@ -695,6 +695,27 @@ bool DEMO::Run()
 	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
 	pDeviceContext->RSSetState(go.pGORSf);
 	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
+
+
+
+	//ground
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &ground.GO_worldMatrix, sizeof(ground.GO_worldMatrix));
+	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
+	pDeviceContext->IASetVertexBuffers(0, 1, &ground.pGOvertices, &ground.Stride, &offset);
+	pDeviceContext->IASetInputLayout(ground.pGO_inputLayout);
+	pDeviceContext->VSSetShader(pGO_VSShader, NULL, 0);
+	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
+	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeviceContext->RSSetState(ground.pGORSf);
+	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
+	pDeviceContext->RSSetState(ground.pGORSb);
+	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
 
 
 

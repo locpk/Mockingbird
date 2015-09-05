@@ -14,6 +14,7 @@ cbuffer SCENE : register(b0)
 struct P_IN
 {
 	float4 posH : SV_POSITION;
+	float3 posW : POSITION;
 	float2 tex : TEXCOORD;
 	float3 normal  : NORMAL;
 };
@@ -21,8 +22,23 @@ struct P_IN
 float4 main(P_IN input) : SV_TARGET
 {
 
-	float3 dir = float3(0.58,-0.58,0.58);
-	float4 lightColor = float4(2, 0.95, 0.878, 1);
+	float4 ori = baseTexture.Sample(filters, input.tex);
+	//Dir light
+
+
+	float3 dir = float3(0.58, -0.58, 0.58);
+	float4 lightColor = float4(1, 0, 0, 1);
 	float r = saturate(dot(-dir, input.normal));
-	return  r  *lightColor * baseTexture.Sample(filters, input.tex) + baseTexture.Sample(filters, input.tex);
+	float4 DIRColor = r  *lightColor * ori;
+
+	////point Light
+	//float3 plightPos = float3(0, 1, 0);
+	//float4 plightColor = float4(0, 1, 0, 1);
+	//float3 plightDir = normalize(plightPos - input.posW);
+	//float plightR = saturate(dot(-plightDir, input.normal));
+	//float4 PointLightColor = plightR  *plightColor * ori;
+
+
+
+	return    /*PointLightColor + */DIRColor + ori;
 }

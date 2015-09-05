@@ -9,6 +9,7 @@ struct V_IN
 struct V_OUT
 {
 	float4 posH : SV_POSITION;
+	float3 posW : POSITION;
 	float2 texOut : TEXCOORD;
 	float3 normalOut  : NORMAL;
 };
@@ -34,5 +35,6 @@ V_OUT main(V_IN input)
 	input.tex.y = 1 - input.tex.y;
 	output.texOut = input.tex.xy;
 	output.normalOut = input.normal;
+	output.posW = input.posL;
 	return output; // send projected vertex to the rasterizer stage
 }
