@@ -17,8 +17,8 @@ public:
 	//Getter
 	inline XMFLOAT3 GetUp(void) const { return up; }
 	inline XMFLOAT3 GetSide(void) const { return side; }
-	inline XMFLOAT3 GetForward(void) const { return position; }
-	inline XMFLOAT3 GetPosition(void) const { return forward; }
+	inline XMFLOAT3 GetForward(void) const { return forward; }
+	inline XMFLOAT3 GetPosition(void) const { return position; }
 	inline XMMATRIX GetView(void) const { return view; }
 	inline XMMATRIX GetProj(void) const { return proj; }
 

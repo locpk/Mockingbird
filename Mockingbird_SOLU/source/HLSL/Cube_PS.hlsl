@@ -20,5 +20,9 @@ struct P_IN
 
 float4 main(P_IN input) : SV_TARGET
 {
-	return  baseTexture.Sample(filters, input.tex);
+
+	float3 dir = float3(0.58,-0.58,0.58);
+	float4 lightColor = float4(2, 0.95, 0.878, 1);
+	float r = saturate(dot(-dir, input.normal));
+	return  r  *lightColor * baseTexture.Sample(filters, input.tex) + baseTexture.Sample(filters, input.tex);
 }

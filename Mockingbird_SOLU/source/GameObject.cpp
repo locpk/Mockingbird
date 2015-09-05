@@ -70,7 +70,6 @@ void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model , string& _textur
 				}
 				break;
 			default:
-
 				break;
 			}
 		}
