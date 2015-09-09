@@ -29,12 +29,14 @@ V_OUT main(V_IN input)
 	// ensures translation is preserved during matrix multiply  
 	float4 localH = float4(input.posL, 1);
 	localH = mul(localH, worldMatrix);
+	output.posW = localH.xyz;
 	localH = mul(localH, viewMatrix);
 	localH = mul(localH, projectionMatrix);
 	output.posH = localH;
 	input.tex.y = 1 - input.tex.y;
 	output.texOut = input.tex.xy;
-	output.normalOut = input.normal;
-	output.posW = input.posL;
+	float4 nor = float4(input.normal, 0);
+	nor = mul(nor, worldMatrix);
+	output.normalOut = float3(nor.xyz);
 	return output; // send projected vertex to the rasterizer stage
 }

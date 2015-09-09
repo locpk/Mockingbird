@@ -5,12 +5,19 @@
 #include "DDSTextureLoader.h"
 #include "Camera.h"
 #include "GameObject.h"
+#include "Lighting.h"
 
 
 
 
 
-
+struct Lights
+{
+	Lighting::AMLight amLight;
+	Lighting::DLight dLight;
+	Lighting::PLight pLight;
+	Lighting::SLight sLight;
+};
 
 class DEMO
 {
@@ -76,6 +83,9 @@ class DEMO
 	Camera another_camera;
 	Camera* current_camera = nullptr;
 	XTime xTime;
+	Lights allLights;
+	ID3D11Buffer* pLightingBuffer = nullptr;
+
 
 
 

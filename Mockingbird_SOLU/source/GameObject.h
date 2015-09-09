@@ -11,6 +11,7 @@ public:
 	ID3D11PixelShader* pGO_PSShader = nullptr;
 	ID3D11VertexShader* pGO_VSShader = nullptr;
 	ID3D11ShaderResourceView* pGO_ShaderResourceView = nullptr;
+	ID3D11RasterizerState* pGORS = nullptr;
 	ID3D11RasterizerState* pGORSf = nullptr;
 	ID3D11RasterizerState* pGORSb = nullptr;
 	unsigned int Stride = sizeof(VERTEX);

@@ -193,14 +193,11 @@ void GameObject::CreateGameObject(ID3D11Device  * _device, string _filepath, con
 	D3D11_RASTERIZER_DESC RasterDESC;
 	ZeroMemory(&RasterDESC, sizeof(RasterDESC));
 	RasterDESC.AntialiasedLineEnable = true;
-	RasterDESC.FrontCounterClockwise = true;
 	RasterDESC.FillMode = D3D11_FILL_SOLID;
 	RasterDESC.CullMode = D3D11_CULL_FRONT;
 	_device->CreateRasterizerState(&RasterDESC, &pGORSf);
-
 	ZeroMemory(&RasterDESC, sizeof(RasterDESC));
 	RasterDESC.AntialiasedLineEnable = true;
-	RasterDESC.FrontCounterClockwise = true;
 	RasterDESC.FillMode = D3D11_FILL_SOLID;
 	RasterDESC.CullMode = D3D11_CULL_BACK;
 	_device->CreateRasterizerState(&RasterDESC, &pGORSb);

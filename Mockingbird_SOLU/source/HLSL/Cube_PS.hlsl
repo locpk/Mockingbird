@@ -11,6 +11,18 @@ cbuffer SCENE : register(b0)
 	float4x4 projectionMatrix;
 }
 
+cbuffer LIGHTING : register(b2)
+{
+	float4 AMlightColor;
+	float4 dlightColor;
+	float4 dlightDirection;
+	float4 plightColor;
+	float4 plightPosition;
+	float4 slightPosition;
+	float4 slightColor;
+	float4 sconeDirAndRatio;
+
+}
 struct P_IN
 {
 	float4 posH : SV_POSITION;
@@ -23,22 +35,31 @@ float4 main(P_IN input) : SV_TARGET
 {
 
 	float4 ori = baseTexture.Sample(filters, input.tex);
+
+	//AM Light
+	float4 amColor = ori * AMlightColor;
 	//Dir light
+	float3 dir = float3(dlightDirection.xyz);
+	float dirRatio = saturate(dot(-dir, input.normal));
+	float4 DIRColor = dirRatio  * dlightColor * ori;
 
+	//point Light
+	float3 plightPos = float3(plightPosition.xyz);
+	float3 plightDir = normalize(plightPos - input.posW);
+	float plightRatio = saturate(dot(plightDir, input.normal));
+	float4 PointLightColor = plightRatio  *plightColor * ori;
 
-	float3 dir = float3(0.58, -0.58, 0.58);
-	float4 lightColor = float4(1, 0, 0, 1);
-	float r = saturate(dot(-dir, input.normal));
-	float4 DIRColor = r  *lightColor * ori;
+	//Spot Light
+	float3 slightPos = float3(slightPosition.xyz);
+	float3 slightDir = normalize(slightPos - input.posW);
+	float surfaceRatio = saturate(dot(-slightDir, normalize(sconeDirAndRatio.xyz)));
+	float SpotFactor = (surfaceRatio > sconeDirAndRatio.w) ? 1 : 0;
+	float slightRatio = saturate(dot(slightDir, normalize(input.normal)));
+	float4 SpotLightColor = SpotFactor* slightRatio *slightColor * ori;
+	float SpotAttenuation = 1.0f - saturate(length(float3(slightPosition.xyz - input.posW)) / 5);
 
-	////point Light
-	//float3 plightPos = float3(0, 1, 0);
-	//float4 plightColor = float4(0, 1, 0, 1);
-	//float3 plightDir = normalize(plightPos - input.posW);
-	//float plightR = saturate(dot(-plightDir, input.normal));
-	//float4 PointLightColor = plightR  *plightColor * ori;
-
-
-
-	return    /*PointLightColor + */DIRColor + ori;
+	//return PointLightColor + amColor;
+	//return DIRColor + amColor;
+	//return SpotLightColor*SpotAttenuation + amColor;
+	return  (amColor + DIRColor + PointLightColor + SpotLightColor*SpotAttenuation);
 }

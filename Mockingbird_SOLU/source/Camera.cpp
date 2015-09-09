@@ -25,13 +25,15 @@ void Camera::UpdateProjection(float _fovDegree,float _width,float _height, float
 
 void Camera::Walk(float _speed)
 {
-	XMStoreFloat3(&position, XMVectorMultiplyAdd(XMVectorReplicate(_speed), XMLoadFloat3(&forward), XMLoadFloat3(&position)));
+	XMVECTOR nForward = XMVector3Normalize(XMLoadFloat3(&forward));
+	XMStoreFloat3(&position, XMVectorMultiplyAdd(XMVectorReplicate(_speed), nForward, XMLoadFloat3(&position)));
 	UpdateView();
 }
 
 void Camera::Stafe(float _speed)
 {
-	XMStoreFloat3(&position, XMVectorMultiplyAdd(XMVectorReplicate(_speed), XMLoadFloat3(&side), XMLoadFloat3(&position)));
+	XMVECTOR nSide = XMVector3Normalize(XMLoadFloat3(&side));
+	XMStoreFloat3(&position, XMVectorMultiplyAdd(XMVectorReplicate(_speed), nSide, XMLoadFloat3(&position)));
 	UpdateView();
 }
 
@@ -44,17 +46,25 @@ void Camera::Climb(float _speed)
 
 void Camera::Pitch(float _angleDegree)
 {
-	XMMATRIX rot = XMMatrixRotationAxis(XMLoadFloat3(&side), XMConvertToRadians(_angleDegree));
-	XMStoreFloat3(&up, XMVector3TransformNormal(XMLoadFloat3(&up), rot));
-	XMStoreFloat3(&forward, XMVector3TransformNormal(XMLoadFloat3(&forward), rot));
+	XMVECTOR nUp = XMVector3Normalize(XMLoadFloat3(&up));
+	XMVECTOR nSide = XMVector3Normalize(XMLoadFloat3(&side));
+	XMVECTOR nForward = XMVector3Normalize(XMLoadFloat3(&forward));
+
+	XMMATRIX rot = XMMatrixRotationAxis(nSide, XMConvertToRadians(_angleDegree));
+	XMStoreFloat3(&up, XMVector3TransformNormal(nUp, rot));
+	XMStoreFloat3(&forward, XMVector3TransformNormal(nForward, rot));
 	UpdateView();
 }
 
 void Camera::RotateY(float _angleDegree)
 {
+	XMVECTOR nUp = XMVector3Normalize(XMLoadFloat3(&up));
+	XMVECTOR nSide = XMVector3Normalize(XMLoadFloat3(&side));
+	XMVECTOR nForward = XMVector3Normalize(XMLoadFloat3(&forward));
+
 	XMMATRIX rot = XMMatrixRotationY(XMConvertToRadians(_angleDegree));
-	XMStoreFloat3(&up, XMVector3TransformNormal(XMLoadFloat3(&up), rot));
-	XMStoreFloat3(&side, XMVector3TransformNormal(XMLoadFloat3(&side), rot));
-	XMStoreFloat3(&forward, XMVector3TransformNormal(XMLoadFloat3(&forward), rot));
+	XMStoreFloat3(&up, XMVector3TransformNormal(nUp, rot));
+	XMStoreFloat3(&side, XMVector3TransformNormal(nSide, rot));
+	XMStoreFloat3(&forward, XMVector3TransformNormal(nForward, rot));
 	UpdateView();
 }

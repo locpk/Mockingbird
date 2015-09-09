@@ -99,7 +99,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	ShowWindow(window, SW_SHOW);
 	//********************* END WARNING ************************//
 
-	
+
 
 	//D3D Init
 	DXGI_SWAP_CHAIN_DESC swapchain_DESC;
@@ -159,10 +159,10 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	another_viewport.Width = (float)swapchain_DESC.BufferDesc.Width / 2.0f;
 	another_viewport.Height = (float)swapchain_DESC.BufferDesc.Height;
 
-	
+
 	UINT MSAACOUNT = 1;
 	UINT MSAALEVEL = 0;
-	
+
 	//Set up Depth Buffer
 	D3D11_TEXTURE2D_DESC ZBufferdesc;
 	ZBufferdesc.Width = swapchain_DESC.BufferDesc.Width;
@@ -299,7 +299,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateVertexShader(SkyBox_VS, sizeof(SkyBox_VS), NULL, &pskybox_VSShader);
 	pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pskybox_PSShader);
 	skybox.CreateGameObject(pDevice, "skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
-	skybox.GO_worldMatrix =  XMMatrixIdentity();
+	skybox.GO_worldMatrix = XMMatrixIdentity();
 
 	//Load Cube
 	D3D11_BUFFER_DESC cubeBufferDesc;
@@ -378,7 +378,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateBuffer(&constbufferSceneDesc, NULL, &pConstantSceneBuffer);
 
 
-	CreateDDSTextureFromFile(pDevice,L"numbers_test.dds", NULL, &pCubeShaderResourceView);
+	CreateDDSTextureFromFile(pDevice, L"numbers_test.dds", NULL, &pCubeShaderResourceView);
 
 
 	//Create Cube Texture Sampler
@@ -400,14 +400,12 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	D3D11_RASTERIZER_DESC cubeRasterDESC;
 	ZeroMemory(&cubeRasterDESC, sizeof(cubeRasterDESC));
 	cubeRasterDESC.AntialiasedLineEnable = true;
-	cubeRasterDESC.FrontCounterClockwise = true;
 	cubeRasterDESC.FillMode = D3D11_FILL_SOLID;
 	cubeRasterDESC.CullMode = D3D11_CULL_FRONT;
 	pDevice->CreateRasterizerState(&cubeRasterDESC, &pCubeRSf);
 
 	ZeroMemory(&cubeRasterDESC, sizeof(cubeRasterDESC));
 	cubeRasterDESC.AntialiasedLineEnable = true;
-	cubeRasterDESC.FrontCounterClockwise = true;
 	cubeRasterDESC.FillMode = D3D11_FILL_SOLID;
 	cubeRasterDESC.CullMode = D3D11_CULL_BACK;
 	pDevice->CreateRasterizerState(&cubeRasterDESC, &pCubeRSb);
@@ -433,26 +431,50 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	cube_matrix = XMMatrixIdentity();
 	star_matrix = XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f);
 
-	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height,NEAR_PLANE, FAR_PLANE);
+	another_camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, NEAR_PLANE, FAR_PLANE);
 	another_camera.SetPosition({ 10.0f, 1.0f, 0.0f });
 	another_camera.RotateY(-90.0f);
 	another_camera.UpdateView();
 	camera.UpdateProjection(60.0f, (float)swapchain_DESC.BufferDesc.Width / (float)2, (float)swapchain_DESC.BufferDesc.Height, NEAR_PLANE, FAR_PLANE);
 	go.GO_worldMatrix = XMMatrixScaling(0.1f, 0.1f, 0.1f) *XMMatrixTranslation(0.0f, 2.0f, 0.0f);
 	ground.GO_worldMatrix = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
+
+
+	//Lights
+	allLights.amLight.lightColor = { 0.2f, 0.2f, 0.2f,1.0f };
+	allLights.dLight.lightColor = { 0.0f, 0.0f, 0.0f,1.0f };
+	allLights.dLight.lightDirection = { 0.58f, -0.58f, 0.58f,1.0f };
+	allLights.pLight.lightColor = { 0.0f,0.0f,0.0f,1.0f };
+	allLights.pLight.lightPosition = { 0.0f,0.0f,-3.0f,1.0f };
+	allLights.sLight.lightPosition = { camera.GetPosition().x,camera.GetPosition().y,camera.GetPosition().z,1.0f };
+	allLights.sLight.lightColor = { 0.0f,0.0f,20.0f,1.0f };
+	allLights.sLight.coneDirAndRatio = { camera.GetForward().x,camera.GetForward().y,camera.GetForward().z,0.8f };
+
+
+	//Light Constant Buffer
+	D3D11_BUFFER_DESC constbufferLightDesc;
+	ZeroMemory(&constbufferLightDesc, sizeof(constbufferLightDesc));
+	constbufferLightDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constbufferLightDesc.ByteWidth = sizeof(allLights);
+	constbufferLightDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	constbufferLightDesc.Usage = D3D11_USAGE_DYNAMIC;
+	constbufferLightDesc.MiscFlags = 0;
+	constbufferLightDesc.StructureByteStride = 0;
+	pDevice->CreateBuffer(&constbufferLightDesc, NULL, &pLightingBuffer);
+
 }
 
 DEMO::~DEMO()
 {
-	
-	
+
+
 }
 
 
 
 bool DEMO::Run()
 {
-	
+
 	xTime.Signal();
 	static double timer = 0.0;
 	timer += xTime.Delta();
@@ -480,12 +502,12 @@ bool DEMO::Run()
 		{
 			current_camera->Stafe(-(float)xTime.Delta() * 500);
 		}
-			
+
 
 		if (right || d)
 		{
 			current_camera->Stafe((float)xTime.Delta() * 500);
-			
+
 		}
 
 		if (up || w)
@@ -525,13 +547,13 @@ bool DEMO::Run()
 	{
 		GetCursorPos(&lastPos);
 		current_camera = &another_camera;
-		
+
 	}
 	else if (GetAsyncKeyState('O') & 0x1)
 	{
 		GetCursorPos(&lastPos);
 		current_camera = &camera;
-		
+
 	}
 	scene._proj = camera.GetProj();
 	scene._view = camera.GetView();
@@ -544,9 +566,20 @@ bool DEMO::Run()
 	pDeviceContext->ClearRenderTargetView(pRenderTargetView, clearColours);
 	pDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
-	
 
-	
+
+
+	allLights.sLight.lightPosition = { camera.GetPosition().x,camera.GetPosition().y,camera.GetPosition().z,1.0f };
+	allLights.sLight.coneDirAndRatio = { camera.GetForward().x,camera.GetForward().y,camera.GetForward().z,0.8f };
+	//Map Light Constant Buffer
+	D3D11_MAPPED_SUBRESOURCE mapLightingSubresource;
+	pDeviceContext->Map(pLightingBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapLightingSubresource);
+	memcpy(mapLightingSubresource.pData, &allLights, sizeof(allLights));
+	pDeviceContext->Unmap(pLightingBuffer, 0);
+	pDeviceContext->PSSetConstantBuffers(2, 1, &pLightingBuffer);
+
+
+
 
 	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
 	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
@@ -570,11 +603,10 @@ bool DEMO::Run()
 	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	pDeviceContext->RSSetState(go.pGORSf);
+	pDeviceContext->RSSetState(go.pGORS);
 	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
-	pDeviceContext->RSSetState(go.pGORSb);
-	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
-	
+
+
 	//ground
 	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
 	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
@@ -589,9 +621,7 @@ bool DEMO::Run()
 	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	pDeviceContext->RSSetState(ground.pGORSf);
-	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
-	pDeviceContext->RSSetState(ground.pGORSb);
+	pDeviceContext->RSSetState(ground.pGORS);
 	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
 
 
@@ -609,21 +639,21 @@ bool DEMO::Run()
 	pDeviceContext->PSSetShader(pskybox_PSShader, NULL, 0);
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	pDeviceContext->RSSetState(skybox.pGORSb);
+	pDeviceContext->RSSetState(skybox.pGORSf);
 	pDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
 
 
 
 
 
-	
+
 	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
 	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
 	memcpy(mapObjectSubresource.pData, &star_matrix, sizeof(star_matrix));
 	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 	//Star
-	
+
 	UINT starStride = sizeof(MyVertex);
 	pDeviceContext->RSSetState(NULL);
 	pDeviceContext->IASetVertexBuffers(0, 1, &pStar, &starStride, &offset);
@@ -634,7 +664,7 @@ bool DEMO::Run()
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pDeviceContext->DrawIndexed(60, 0, 0);
 
-	
+
 
 
 	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
@@ -665,7 +695,7 @@ bool DEMO::Run()
 
 
 	//Second Viewport
-	
+
 	scene._proj = another_camera.GetProj();
 	scene._view = another_camera.GetView();
 	pDeviceContext->RSSetViewports(1, &another_viewport);
@@ -688,17 +718,16 @@ bool DEMO::Run()
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
 	pDeviceContext->PSSetShaderResources(0, 1, &go.pGO_ShaderResourceView);
-	
+
 	pDeviceContext->IASetVertexBuffers(0, 1, &go.pGOvertices, &go.Stride, &offset);
 	pDeviceContext->IASetInputLayout(go.pGO_inputLayout);
 	pDeviceContext->VSSetShader(pGO_VSShader, NULL, 0);
 	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	pDeviceContext->RSSetState(go.pGORSf);
+	pDeviceContext->RSSetState(go.pGORS);
 	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
-	pDeviceContext->RSSetState(go.pGORSf);
-	pDeviceContext->Draw((UINT)go.GOrawData.size(), 0);
+
 
 
 
@@ -716,9 +745,8 @@ bool DEMO::Run()
 	pDeviceContext->PSSetShader(pGO_PSShader, NULL, 0);
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	pDeviceContext->RSSetState(ground.pGORSf);
-	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
-	pDeviceContext->RSSetState(ground.pGORSb);
+
+	pDeviceContext->RSSetState(ground.pGORS);
 	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
 
 
@@ -772,13 +800,13 @@ bool DEMO::Run()
 	pDeviceContext->PSSetShader(pskybox_PSShader, NULL, 0);
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	pDeviceContext->RSSetState(skybox.pGORSb);
+	pDeviceContext->RSSetState(skybox.pGORSf);
 	pDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
 
 	pSwapchain->Present(0, 0);
 
 
-	
+
 
 
 
@@ -798,7 +826,8 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeShaderResourceView);
 	SecureRelease(pCubeRSf);
 	SecureRelease(pCubeRSb);
-	
+
+	SecureRelease(pLightingBuffer);
 
 	SecureRelease(pGO_VSShader);
 	SecureRelease(pGO_PSShader);
@@ -835,11 +864,11 @@ void DEMO::ResizeWindow(UINT _width, UINT _height)
 {
 	if (pSwapchain != nullptr)
 	{
-		if (_width <= 0 )
+		if (_width <= 0)
 		{
 			_width = 1;
 		}
-		if ( _height <= 0)
+		if (_height <= 0)
 		{
 			_height = 1;
 		}
@@ -867,7 +896,7 @@ void DEMO::ResizeWindow(UINT _width, UINT _height)
 		ZBufferdesc.MiscFlags = 0;
 		pDevice->CreateTexture2D(&ZBufferdesc, 0, &pZBuffer);
 		pDevice->CreateDepthStencilView(pZBuffer, NULL, &pDepthStencilView);
-		camera.UpdateProjection(60.0f, (float)_width /2.0f, (float)_height, NEAR_PLANE, FAR_PLANE);
+		camera.UpdateProjection(60.0f, (float)_width / 2.0f, (float)_height, NEAR_PLANE, FAR_PLANE);
 		another_camera.UpdateProjection(60.0f, (float)_width / 2.0f, (float)_height, NEAR_PLANE, FAR_PLANE);
 		viewport.Width = (float)_width / 2.0f;
 		viewport.Height = (float)_height;

@@ -32,6 +32,8 @@ V_OUT main(V_IN input)
 	output.posH = localH;
 
 	output.texOut = float4(input.posL,1.0);
-	output.normalOut = input.normal;
+	float4 nor = float4(input.normal, 0);
+	nor = mul(nor, worldMatrix);
+	output.normalOut = float3(nor.xyz);
 	return output;
 }
