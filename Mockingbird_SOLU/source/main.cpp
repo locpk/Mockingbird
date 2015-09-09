@@ -47,10 +47,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						break;
 	case (WM_SIZE) :
 	{
-		RECT rc;
-		GetClientRect(hWnd, &rc);
-		UINT width = rc.right;
-		UINT height = rc.bottom;
+		UINT width = LOWORD(lParam);
+		UINT height = HIWORD(lParam);;
 		if (gDemo)
 		{
 			gDemo->ResizeWindow(width, height);

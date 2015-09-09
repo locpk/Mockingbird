@@ -99,6 +99,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	ShowWindow(window, SW_SHOW);
 	//********************* END WARNING ************************//
 
+	
 
 	//D3D Init
 	DXGI_SWAP_CHAIN_DESC swapchain_DESC;
@@ -158,7 +159,10 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	another_viewport.Width = (float)swapchain_DESC.BufferDesc.Width / 2.0f;
 	another_viewport.Height = (float)swapchain_DESC.BufferDesc.Height;
 
-
+	
+	UINT MSAACOUNT = 1;
+	UINT MSAALEVEL = 0;
+	
 	//Set up Depth Buffer
 	D3D11_TEXTURE2D_DESC ZBufferdesc;
 	ZBufferdesc.Width = swapchain_DESC.BufferDesc.Width;
@@ -166,8 +170,8 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	ZBufferdesc.MipLevels = 1;
 	ZBufferdesc.ArraySize = 1;
 	ZBufferdesc.Format = DXGI_FORMAT_D32_FLOAT;
-	ZBufferdesc.SampleDesc.Count = 1;
-	ZBufferdesc.SampleDesc.Quality = 0;
+	ZBufferdesc.SampleDesc.Count = MSAACOUNT;
+	ZBufferdesc.SampleDesc.Quality = MSAALEVEL;
 	ZBufferdesc.Usage = D3D11_USAGE_DEFAULT;
 	ZBufferdesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 	ZBufferdesc.CPUAccessFlags = 0;
@@ -831,7 +835,14 @@ void DEMO::ResizeWindow(UINT _width, UINT _height)
 {
 	if (pSwapchain != nullptr)
 	{
-
+		if (_width <= 0 )
+		{
+			_width = 1;
+		}
+		if ( _height <= 0)
+		{
+			_height = 1;
+		}
 		pDeviceContext->OMSetRenderTargets(0, NULL, NULL);
 		SecureRelease(pRenderTargetView);
 		pDeviceContext->ClearState();

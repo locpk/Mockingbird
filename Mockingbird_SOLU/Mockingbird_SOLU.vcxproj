@@ -187,6 +187,7 @@
     <ClInclude Include="source\Define.h" />
     <ClInclude Include="source\DEMO.h" />
     <ClInclude Include="source\GameObject.h" />
+    <ClInclude Include="source\Lighting.h" />
     <ClInclude Include="source\numbers_test.h" />
     <ClInclude Include="source\ObjLoader.h" />
     <ClInclude Include="source\XTime.h" />
