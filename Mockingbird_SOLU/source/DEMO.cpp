@@ -290,15 +290,15 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	//Create Go Shaders
 	pDevice->CreateVertexShader(Cube_VS, sizeof(Cube_VS), NULL, &pGO_VSShader);
 	pDevice->CreatePixelShader(Cube_PS, sizeof(Cube_PS), NULL, &pGO_PSShader);
-	go.CreateGameObject(pDevice, "heli.obj", Cube_VS, sizeof(Cube_VS));
+	go.CreateGameObject(pDevice, "asset/heli.obj", Cube_VS, sizeof(Cube_VS));
 
 
-	ground.CreateGameObject(pDevice, "Ground.obj", Cube_VS, sizeof(Cube_VS));
+	ground.CreateGameObject(pDevice, "asset/Ground.obj", Cube_VS, sizeof(Cube_VS));
 
 
 	pDevice->CreateVertexShader(SkyBox_VS, sizeof(SkyBox_VS), NULL, &pskybox_VSShader);
 	pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pskybox_PSShader);
-	skybox.CreateGameObject(pDevice, "skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
+	skybox.CreateGameObject(pDevice, "asset/skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
 	skybox.GO_worldMatrix = XMMatrixIdentity();
 
 	//Load Cube
@@ -378,7 +378,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateBuffer(&constbufferSceneDesc, NULL, &pConstantSceneBuffer);
 
 
-	CreateDDSTextureFromFile(pDevice, L"numbers_test.dds", NULL, &pCubeShaderResourceView);
+	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test.dds", NULL, &pCubeShaderResourceView);
 
 
 	//Create Cube Texture Sampler

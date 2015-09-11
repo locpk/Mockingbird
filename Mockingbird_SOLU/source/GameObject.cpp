@@ -76,7 +76,7 @@ void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model , string& _textur
 		fin.close();
 	}
 
-
+	mtl = "asset/" + mtl;
 	fin.open(mtl);
 	if (fin.is_open())
 	{
@@ -185,7 +185,8 @@ void GameObject::CreateGameObject(ID3D11Device  * _device, string _filepath, con
 	};
 	_device->CreateInputLayout(InputLayout, 3, _VS, _VSize, &pGO_inputLayout);
 
-	wstring ws = wstring(textureName.begin(), textureName.end());
+	wstring ws =  wstring(textureName.begin(), textureName.end());
+	ws = L"asset/" + ws;
 	CreateDDSTextureFromFile(_device, ws.c_str(), NULL, &pGO_ShaderResourceView);
 	
 
