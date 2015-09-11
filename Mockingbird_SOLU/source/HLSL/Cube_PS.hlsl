@@ -64,3 +64,8 @@ float4 main(P_IN input) : SV_TARGET
 	//return SpotLightColor*SpotAttenuation + amColor;
 	return  (amColor + DIRColor + PointLightColor*PointAttenuation + SpotLightColor*SpotAttenuation);
 }
+
+
+
+
+

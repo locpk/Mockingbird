@@ -56,6 +56,8 @@ class DEMO
 	ID3D11ShaderResourceView* pCubeShaderResourceView = nullptr;
 	ID3D11RasterizerState* pCubeRSf = nullptr;
 	ID3D11RasterizerState* pCubeRSb = nullptr;
+	ID3D11Buffer* pCubeInstanceBuffer = nullptr;
+	vector<XMFLOAT4X4> cubeInstancedData;
 
 	XMMATRIX star_matrix;
 	ID3D11Buffer* pStar = nullptr;
@@ -65,12 +67,12 @@ class DEMO
 	ID3D11PixelShader* pStar_PSShader = nullptr;
 	ID3D11Buffer* pConstantStarBuffer = nullptr;
 
-	//GO
-	GameObject go;
-	ID3D11VertexShader* pGO_VSShader = nullptr;
-	ID3D11PixelShader* pGO_PSShader = nullptr;
-	GameObject ground;
 
+	GameObject heli;
+	ID3D11VertexShader* pHeli_VSShader = nullptr;
+	ID3D11PixelShader* pHeli_PSShader = nullptr;
+	GameObject ground;
+	GameObject parkLight;
 
 	GameObject skybox;
 	ID3D11VertexShader* pskybox_VSShader = nullptr;

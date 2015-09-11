@@ -5,6 +5,8 @@ struct V_IN
 	float3 posL : POSITION;
 	float3 tex : TEXCOORD;
 	float3 normal : NORMAL;
+	float4x4 world : WORLD;
+	uint InstanceID: SV_InstanceID;
 };
 struct V_OUT
 {
@@ -27,7 +29,8 @@ V_OUT main(V_IN input)
 	V_OUT output = (V_OUT)0;
 	// ensures translation is preserved during matrix multiply  
 	float4 localH = float4(input.posL,1);
-	localH = mul(localH, worldMatrix);
+	localH = mul(localH, input.world);
+	//localH = mul(localH, worldMatrix);
 	localH = mul(localH, viewMatrix);
 	localH = mul(localH, projectionMatrix);
 	output.posH = localH;
