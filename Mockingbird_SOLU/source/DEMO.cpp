@@ -10,6 +10,7 @@
 #include "CSH\SkyBox_VS.csh"
 #include "CSH\SkyBox_PS.csh"
 
+
 //Helper Fuctions
 MyVertex* CreateStar()
 {
@@ -442,10 +443,10 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 
 	//Lights
 	allLights.amLight.lightColor = { 0.2f, 0.2f, 0.2f,1.0f };
-	allLights.dLight.lightColor = { 0.0f, 0.0f, 0.0f,1.0f };
+	allLights.dLight.lightColor = { 10.0f, 0.0f, 0.0f,1.0f };
 	allLights.dLight.lightDirection = { 0.58f, -0.58f, 0.58f,1.0f };
-	allLights.pLight.lightColor = { 0.0f,0.0f,0.0f,1.0f };
-	allLights.pLight.lightPosition = { 0.0f,0.0f,-3.0f,1.0f };
+	allLights.pLight.lightColor = { 0.0f,10.0f,0.0f,1.0f };
+	allLights.pLight.lightPosition = { 0.0f,1.0f,-3.0f,1.0f };
 	allLights.sLight.lightPosition = { camera.GetPosition().x,camera.GetPosition().y,camera.GetPosition().z,1.0f };
 	allLights.sLight.lightColor = { 0.0f,0.0f,20.0f,1.0f };
 	allLights.sLight.coneDirAndRatio = { camera.GetForward().x,camera.GetForward().y,camera.GetForward().z,0.8f };
@@ -485,6 +486,18 @@ bool DEMO::Run()
 		XMMATRIX rotYN = XMMatrixRotationY(XMConvertToRadians(-1.0f));
 		cube_matrix = rotY * cube_matrix;
 		star_matrix = rotYN * star_matrix;
+
+		//Directional Light Movement
+		XMVECTOR DLdir = XMLoadFloat4(&allLights.dLight.lightDirection);
+		DLdir =  XMVector4Transform(DLdir, XMMatrixRotationX(0.01f));
+		XMStoreFloat4(&allLights.dLight.lightDirection, DLdir);
+		
+
+		//Point Light Movement
+		XMVECTOR PLpos = XMLoadFloat4(&allLights.pLight.lightPosition);
+		PLpos = XMVector4Transform(PLpos, XMMatrixRotationY(0.01f));
+		XMStoreFloat4(&allLights.pLight.lightPosition, PLpos);
+		
 	}
 	if (current_camera)
 	{

@@ -48,6 +48,7 @@ float4 main(P_IN input) : SV_TARGET
 	float3 plightDir = normalize(plightPos - input.posW);
 	float plightRatio = saturate(dot(plightDir, input.normal));
 	float4 PointLightColor = plightRatio  *plightColor * ori;
+	float PointAttenuation = 1.0f - saturate(length(float3(plightPos.xyz - input.posW)) / 10);
 
 	//Spot Light
 	float3 slightPos = float3(slightPosition.xyz);
@@ -61,5 +62,5 @@ float4 main(P_IN input) : SV_TARGET
 	//return PointLightColor + amColor;
 	//return DIRColor + amColor;
 	//return SpotLightColor*SpotAttenuation + amColor;
-	return  (amColor + DIRColor + PointLightColor + SpotLightColor*SpotAttenuation);
+	return  (amColor + DIRColor + PointLightColor*PointAttenuation + SpotLightColor*SpotAttenuation);
 }

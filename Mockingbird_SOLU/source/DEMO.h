@@ -85,8 +85,8 @@ class DEMO
 	XTime xTime;
 	Lights allLights;
 	ID3D11Buffer* pLightingBuffer = nullptr;
-
-
+	XMFLOAT4 DLSpos = {0.0f,0.0f,30.0f,1.0f};
+	XMFLOAT4 DLEpos = { 0.0f,0.0f,-30.0f,1.0f };
 
 
 	static DEMO* s_pInstance;
