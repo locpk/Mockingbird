@@ -10,7 +10,8 @@
 #include "CSH\SkyBox_VS.csh"
 #include "CSH\SkyBox_PS.csh"
 
-
+#define MSAA 1
+#define MSAA_COUNT 8
 //Helper Fuctions
 MyVertex* CreateStar()
 {
@@ -51,8 +52,15 @@ MyVertex* CreateStar()
 }
 
 
-
-
+float ObjectToCamera(XMFLOAT4X4* _objMatrix, XMFLOAT3 _cameraPos)
+{
+	XMVECTOR obj = XMVectorZero();
+	obj = XMVector3Transform(obj, XMLoadFloat4x4(_objMatrix));
+	float ObjtoCameraX = XMVectorGetX(obj) - _cameraPos.x;
+	float ObjtoCameraY = XMVectorGetY(obj) - _cameraPos.y;
+	float ObjtoCameraZ = XMVectorGetZ(obj) - _cameraPos.z;
+	return ObjtoCameraX*ObjtoCameraX + ObjtoCameraY*ObjtoCameraY + ObjtoCameraZ*ObjtoCameraZ;
+}
 
 
 
@@ -113,8 +121,12 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	swapchain_DESC.BufferDesc.RefreshRate.Numerator = 60;
 	swapchain_DESC.BufferDesc.RefreshRate.Denominator = 1;
 	swapchain_DESC.OutputWindow = window;
+#if MSAA
+	swapchain_DESC.SampleDesc.Count = MSAA_COUNT;
+#else
 	swapchain_DESC.SampleDesc.Count = 1;
-	swapchain_DESC.SampleDesc.Quality = 0;
+#endif
+	swapchain_DESC.SampleDesc.Quality = D3D11_STANDARD_MULTISAMPLE_PATTERN;
 	swapchain_DESC.Windowed = TRUE;
 
 	//Create Device and Swapchain DEBUG
@@ -161,8 +173,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	another_viewport.Height = (float)swapchain_DESC.BufferDesc.Height;
 
 
-	UINT MSAACOUNT = 1;
-	UINT MSAALEVEL = 0;
+	
 
 	//Set up Depth Buffer
 	D3D11_TEXTURE2D_DESC ZBufferdesc;
@@ -171,8 +182,8 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	ZBufferdesc.MipLevels = 1;
 	ZBufferdesc.ArraySize = 1;
 	ZBufferdesc.Format = DXGI_FORMAT_D32_FLOAT;
-	ZBufferdesc.SampleDesc.Count = MSAACOUNT;
-	ZBufferdesc.SampleDesc.Quality = MSAALEVEL;
+	ZBufferdesc.SampleDesc.Count = swapchain_DESC.SampleDesc.Count;
+	ZBufferdesc.SampleDesc.Quality = swapchain_DESC.SampleDesc.Quality;
 	ZBufferdesc.Usage = D3D11_USAGE_DEFAULT;
 	ZBufferdesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 	ZBufferdesc.CPUAccessFlags = 0;
@@ -300,7 +311,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateVertexShader(SkyBox_VS, sizeof(SkyBox_VS), NULL, &pskybox_VSShader);
 	pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pskybox_PSShader);
 	skybox.CreateGameObject(pDevice, "asset/skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
-	
+
 
 	//Load Cube
 	D3D11_BUFFER_DESC cubeBufferDesc;
@@ -351,22 +362,28 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateBuffer(&cubeIndexBufferDesc, &cubeIndexBufferData, &pCube_indexBuffer);
 
 	//Instancing Cube
-	
+
 	XMFLOAT4X4 temp;
-	for (size_t i = 0; i < 360; i++)
+	/*for (size_t i = 0; i < 3; i++)
 	{
-		XMStoreFloat4x4(&temp, XMMatrixTranslation(cosf(i*0.1), i, 0.0f));
+		XMStoreFloat4x4(&temp, XMMatrixTranslation( 1.5f*cosf(i), 1.0f, 1.5f*sinf(i)));
 		cubeInstancedData.push_back(temp);
-	}
+	}*/
 
+	XMStoreFloat4x4(&temp, XMMatrixTranslation(2.0f, 1.0f, 2.0f));
+	cubeInstancedData.push_back(temp);
+	XMStoreFloat4x4(&temp, XMMatrixTranslation(0.0f, 1.0f, 0.0f));
+	cubeInstancedData.push_back(temp);
+	XMStoreFloat4x4(&temp, XMMatrixTranslation(-2.0f, 1.0f, -2.0f));
+	cubeInstancedData.push_back(temp);
 
-	D3D11_BUFFER_DESC vbd; 
-	vbd.Usage = D3D11_USAGE_DYNAMIC; 
+	D3D11_BUFFER_DESC vbd;
+	vbd.Usage = D3D11_USAGE_DYNAMIC;
 	vbd.ByteWidth = sizeof(XMFLOAT4X4) * (unsigned int)cubeInstancedData.size();
 	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; 
-	vbd.MiscFlags = 0; 
-	vbd.StructureByteStride = 0; 
+	vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	vbd.MiscFlags = 0;
+	vbd.StructureByteStride = 0;
 	D3D11_SUBRESOURCE_DATA instData;
 	ZeroMemory(&instData, sizeof(instData));
 	instData.pSysMem = cubeInstancedData.data();
@@ -509,17 +526,120 @@ bool DEMO::Run()
 	if (timer > ANIMATION_SPEED)
 	{
 		timer = 0;
-		
+
 		XMMATRIX rotYN = XMMatrixRotationY(XMConvertToRadians(-1.0f));
 		star_matrix = rotYN * star_matrix;
 
 
 
-		for (size_t i = 0; i < cubeInstancedData.size(); i++)
+		//for (size_t i = 0; i < cubeInstancedData.size(); i++)
+		//{
+		//	XMMATRIX rotY = XMMatrixRotationY(XMConvertToRadians((float)(i+10))) * XMLoadFloat4x4(&cubeInstancedData[i]);
+		//	XMStoreFloat4x4(&cubeInstancedData[i], rotY);
+		//}
+
+
+		//Directional Light Movement
+		XMVECTOR DLdir = XMLoadFloat4(&allLights.dLight.lightDirection);
+		DLdir = XMVector4Transform(DLdir, XMMatrixRotationX(0.01f));
+		XMStoreFloat4(&allLights.dLight.lightDirection, DLdir);
+
+
+		//Point Light Movement
+		XMVECTOR PLpos = XMLoadFloat4(&allLights.pLight.lightPosition);
+		PLpos = XMVector4Transform(PLpos, XMMatrixRotationY(0.01f));
+		XMStoreFloat4(&allLights.pLight.lightPosition, PLpos);
+
+	}
+	if (current_camera)
+	{
+		SHORT left, right, up, down, shift, w, a, s, d;
+		left = GetAsyncKeyState(VK_LEFT);
+		a = GetAsyncKeyState('A') ;
+		right = GetAsyncKeyState(VK_RIGHT) ;
+		d = GetAsyncKeyState('D') ;
+		up = GetAsyncKeyState(VK_UP);
+		w = GetAsyncKeyState('W');
+		down = GetAsyncKeyState(VK_DOWN);
+		s = GetAsyncKeyState('S');
+		shift = GetAsyncKeyState(VK_SHIFT);
+		if (left || a)
 		{
-			XMMATRIX rotY = XMMatrixRotationY(XMConvertToRadians((float)(i+10))) * XMLoadFloat4x4(&cubeInstancedData[i]);
-			XMStoreFloat4x4(&cubeInstancedData[i], rotY);
+			current_camera->Stafe(-(float)xTime.Delta() * 10);
 		}
+
+
+		if (right || d)
+		{
+			current_camera->Stafe((float)xTime.Delta() * 10);
+
+		}
+
+		if (up || w)
+		{
+			current_camera->Walk((float)xTime.Delta() * 10);
+		}
+
+		if (down || s)
+		{
+			current_camera->Walk(-(float)xTime.Delta() * 10);
+		}
+
+		if (shift && up)
+		{
+			current_camera->Climb((float)xTime.Delta() * 10);
+		}
+
+		if (shift && down)
+		{
+			current_camera->Climb(-(float)xTime.Delta() * 10);
+		}
+
+		GetCursorPos(&CurPos);
+		if (GetAsyncKeyState(VK_LBUTTON) && (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
+		{
+			current_camera->Pitch(0.15f*(CurPos.y - lastPos.y));
+			current_camera->RotateY(0.15f*(CurPos.x - lastPos.x));
+			
+
+			RECT rect;
+			GetWindowRect(window, &rect);
+			if (CurPos.x >= rect.right)
+			{
+				CurPos.x = rect.left;
+			}
+			else if (CurPos.x <= rect.left)
+			{
+				CurPos.x = rect.right;
+			}
+			else if (CurPos.y <= rect.top)
+			{
+				CurPos.y = rect.bottom;
+			}
+			else if (CurPos.y >= rect.bottom - 1)
+			{
+				CurPos.y = rect.top;
+			}
+			SetCursorPos(CurPos.x, CurPos.y);
+			lastPos.x = CurPos.x;
+			lastPos.y = CurPos.y;
+		}
+
+
+
+		float cube1tocamera = ObjectToCamera(&cubeInstancedData[0], current_camera->GetPosition());
+		float cube2tocamera = ObjectToCamera(&cubeInstancedData[1], current_camera->GetPosition());
+		float cube3tocamera = ObjectToCamera(&cubeInstancedData[2], current_camera->GetPosition());
+
+		if (cube1tocamera < cube2tocamera)
+		{
+			swap(cubeInstancedData[0], cubeInstancedData[1]);
+			if (cube1tocamera < cube3tocamera)
+			{
+				swap(cubeInstancedData[1], cubeInstancedData[2]);
+			}
+		}
+		
 		SecureRelease(pCubeInstanceBuffer);
 		D3D11_BUFFER_DESC vbd;
 		vbd.Usage = D3D11_USAGE_DYNAMIC;
@@ -534,71 +654,6 @@ bool DEMO::Run()
 		pDevice->CreateBuffer(&vbd, &instData, &pCubeInstanceBuffer);
 
 
-
-		//Directional Light Movement
-		XMVECTOR DLdir = XMLoadFloat4(&allLights.dLight.lightDirection);
-		DLdir =  XMVector4Transform(DLdir, XMMatrixRotationX(0.01f));
-		XMStoreFloat4(&allLights.dLight.lightDirection, DLdir);
-		
-
-		//Point Light Movement
-		XMVECTOR PLpos = XMLoadFloat4(&allLights.pLight.lightPosition);
-		PLpos = XMVector4Transform(PLpos, XMMatrixRotationY(0.01f));
-		XMStoreFloat4(&allLights.pLight.lightPosition, PLpos);
-		
-	}
-	if (current_camera)
-	{
-		SHORT left, right, up, down, shift, w, a, s, d;
-		left = GetAsyncKeyState(VK_LEFT) & 0x1;
-		a = GetAsyncKeyState('A') & 0x1;
-		right = GetAsyncKeyState(VK_RIGHT) & 0x1;
-		d = GetAsyncKeyState('D') & 0x1;
-		up = GetAsyncKeyState(VK_UP) & 0x1;
-		w = GetAsyncKeyState('W') & 0x1;
-		down = GetAsyncKeyState(VK_DOWN) & 0x1;
-		s = GetAsyncKeyState('S') & 0x1;
-		shift = GetAsyncKeyState(VK_SHIFT);
-		if (left || a)
-		{
-			current_camera->Stafe(-(float)xTime.Delta() * 500);
-		}
-
-
-		if (right || d)
-		{
-			current_camera->Stafe((float)xTime.Delta() * 500);
-
-		}
-
-		if (up || w)
-		{
-			current_camera->Walk((float)xTime.Delta() * 500);
-		}
-
-		if (down || s)
-		{
-			current_camera->Walk(-(float)xTime.Delta() * 500);
-		}
-
-		if (shift && up)
-		{
-			current_camera->Climb((float)xTime.Delta() * 500);
-		}
-
-		if (shift && down)
-		{
-			current_camera->Climb(-(float)xTime.Delta() * 500);
-		}
-
-		GetCursorPos(&CurPos);
-		if (/*GetAsyncKeyState(VK_LBUTTON) &&*/ (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
-		{
-			current_camera->Pitch(0.15f*(CurPos.y - lastPos.y));
-			current_camera->RotateY(0.15f*(CurPos.x - lastPos.x));
-			lastPos.x = CurPos.x;
-			lastPos.y = CurPos.y;
-		}
 	}
 	if (GetAsyncKeyState('K') & 0x1)
 	{
@@ -766,9 +821,9 @@ bool DEMO::Run()
 
 
 	pDeviceContext->RSSetState(pCubeRSf);
-	pDeviceContext->DrawIndexedInstanced(1692, 360, 0, 0, 0);
+	pDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
 	pDeviceContext->RSSetState(pCubeRSb);
-	pDeviceContext->DrawIndexedInstanced(1692, 360, 0, 0, 0);
+	pDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
 
 
 
@@ -883,9 +938,9 @@ bool DEMO::Run()
 
 
 	pDeviceContext->RSSetState(pCubeRSf);
-	pDeviceContext->DrawIndexedInstanced(1692, 50, 0, 0, 0);
+	pDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
 	pDeviceContext->RSSetState(pCubeRSb);
-	pDeviceContext->DrawIndexedInstanced(1692, 50, 0, 0, 0);
+	pDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
 
 	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
 	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
@@ -976,6 +1031,9 @@ void DEMO::ResizeWindow(UINT _width, UINT _height)
 		pDeviceContext->OMSetRenderTargets(0, NULL, NULL);
 		SecureRelease(pRenderTargetView);
 		pDeviceContext->ClearState();
+		DXGI_SWAP_CHAIN_DESC swapchain_DESC;
+		ZeroMemory(&swapchain_DESC, sizeof(swapchain_DESC));
+		pSwapchain->GetDesc(&swapchain_DESC);
 		pSwapchain->ResizeBuffers(0, _width, _height, DXGI_FORMAT_UNKNOWN, 0);
 		ID3D11Texture2D* backBuffer;
 		pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
@@ -989,8 +1047,8 @@ void DEMO::ResizeWindow(UINT _width, UINT _height)
 		ZBufferdesc.MipLevels = 1;
 		ZBufferdesc.ArraySize = 1;
 		ZBufferdesc.Format = DXGI_FORMAT_D32_FLOAT;
-		ZBufferdesc.SampleDesc.Count = 1;
-		ZBufferdesc.SampleDesc.Quality = 0;
+		ZBufferdesc.SampleDesc.Count = swapchain_DESC.SampleDesc.Count;
+		ZBufferdesc.SampleDesc.Quality = swapchain_DESC.SampleDesc.Quality;
 		ZBufferdesc.Usage = D3D11_USAGE_DEFAULT;
 		ZBufferdesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 		ZBufferdesc.CPUAccessFlags = 0;
