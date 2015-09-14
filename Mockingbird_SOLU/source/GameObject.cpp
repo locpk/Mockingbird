@@ -2,7 +2,7 @@
 #include "Define.h"
 #include "DDSTextureLoader.h"
 #include "CSH\Cube_VS.csh"
-void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model , string& _texture)
+void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model, string& _texture)
 {
 	vector<unsigned int> vertexIndices, uvIndices, normalIndices;
 	vector<XMFLOAT3> temp_vertices;
@@ -35,7 +35,7 @@ void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model , string& _textur
 				{
 					float u, v;
 					fin >> u >> v;
-					temp_uvs.push_back(XMFLOAT3(u, v,0.0f));
+					temp_uvs.push_back(XMFLOAT3(u, v, 0.0f));
 				}
 				else if (letter == 'n')
 				{
@@ -62,9 +62,9 @@ void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model , string& _textur
 				}
 				break;
 			case 'm':
-				fin.readsome(mtllib,5);
+				fin.readsome(mtllib, 5);
 				mtllib[5] = '\0';
-				if (0 == strcmp(mtllib,"tllib"))
+				if (0 == strcmp(mtllib, "tllib"))
 				{
 					fin >> mtl;
 				}
@@ -98,20 +98,44 @@ void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model , string& _textur
 				break;
 			}
 		}
-		
+
 	}
 
 
 	for (size_t i = 0; i < vertexIndices.size(); i++)
 	{
 		VERTEX temp;
-		unsigned int index = vertexIndices[i];
-		temp.pos = temp_vertices[index - 1];
-		index = uvIndices[i];
-		temp.uv = temp_uvs[index - 1];
-		index = normalIndices[i];
-		temp.normal = temp_normals[index - 1];
+		unsigned int posIndex = vertexIndices[i] - 1;
+		unsigned int uvIndex = uvIndices[i] - 1;
+		unsigned int nIndex = normalIndices[i] - 1;
+		temp.pos = temp_vertices[posIndex];
+		temp.uv = temp_uvs[uvIndex];
+		temp.normal = temp_normals[nIndex];
+		temp.tangent = { 0.0f,0.0f,0.0f };
 		_model.push_back(temp);
+	}
+
+	for (size_t i = 0; i < _model.size(); i++)
+	{
+
+		if (i % 3 == 0)
+		{
+			XMFLOAT3 edge1 = { _model[i].pos.x - _model[i + 2].pos.x,_model[i].pos.y - _model[i + 2].pos.y,_model[i].pos.z - _model[i + 2].pos.z };
+			XMFLOAT3 edge2 = { _model[i + 2].pos.x - _model[i + 1].pos.x,_model[i + 2].pos.y - _model[i + 1].pos.y,_model[i + 2].pos.z - _model[i + 1].pos.z };
+			float tcU1 = _model[i].uv.x - _model[i + 2].uv.x;
+			float tcV1 = _model[i].uv.y - _model[i + 2].uv.y;
+			float tcU2 = _model[i + 2].uv.x - _model[i + 1].uv.x;
+			float tcV2 = _model[i + 2].uv.y - _model[i + 1].uv.y;
+			_model[i].tangent.x = (tcV1 * edge1.x - tcV2 * edge2.x) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+			_model[i].tangent.y = (tcV1 * edge1.y - tcV2 * edge2.y) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+			_model[i].tangent.z = (tcV1 * edge1.z - tcV2 * edge2.z) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
+			XMVECTOR nor = XMVector4Normalize(XMLoadFloat3(&_model[i].tangent));
+			XMStoreFloat3(&_model[i].tangent, nor);
+			_model[i + 2].tangent = _model[i + 1].tangent = _model[i].tangent;
+			
+		}
+		
+
 	}
 	int i = 0;
 	//formating data
@@ -181,14 +205,15 @@ void GameObject::CreateGameObject(ID3D11Device  * _device, string _filepath, con
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	_device->CreateInputLayout(InputLayout, 3, _VS, _VSize, &pGO_inputLayout);
+	_device->CreateInputLayout(InputLayout, 4, _VS, _VSize, &pGO_inputLayout);
 
-	wstring ws =  wstring(textureName.begin(), textureName.end());
+	wstring ws = wstring(textureName.begin(), textureName.end());
 	ws = L"asset/" + ws;
 	CreateDDSTextureFromFile(_device, ws.c_str(), NULL, &pGO_ShaderResourceView);
-	
+
 
 
 	D3D11_RASTERIZER_DESC RasterDESC;

@@ -305,6 +305,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	heli.CreateGameObject(pDevice, "asset/heli.obj", Cube_VS, sizeof(Cube_VS));
 
 	ground.CreateGameObject(pDevice, "asset/Ground.obj", Cube_VS, sizeof(Cube_VS));
+	CreateDDSTextureFromFile(pDevice, L"asset/Ground_norm.dds", NULL, &pGroundNormalMap);
 	parkLight.CreateGameObject(pDevice, "asset/ParkLight.obj", Cube_VS, sizeof(Cube_VS));
 
 
@@ -696,8 +697,9 @@ bool DEMO::Run()
 
 
 
-
+	
 	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
 	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
 	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
 	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
@@ -730,7 +732,17 @@ bool DEMO::Run()
 	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
+	scene.hasNormal = true;
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
+	scene.hasNormal = false;
+	
+
 	pDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
+	pDeviceContext->PSSetShaderResources(1, 1, &pGroundNormalMap);
 	pDeviceContext->IASetVertexBuffers(0, 1, &ground.pGOvertices, &ground.Stride, &offset);
 	pDeviceContext->IASetInputLayout(ground.pGO_inputLayout);
 	pDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
@@ -739,6 +751,12 @@ bool DEMO::Run()
 
 	pDeviceContext->RSSetState(ground.pGORS);
 	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
+
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
 
 	//Parklight
 	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
@@ -874,7 +892,17 @@ bool DEMO::Run()
 	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
+	scene.hasNormal = true;
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
+	scene.hasNormal = false;
+
+
 	pDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
+	pDeviceContext->PSSetShaderResources(1, 1, &pGroundNormalMap);
 	pDeviceContext->IASetVertexBuffers(0, 1, &ground.pGOvertices, &ground.Stride, &offset);
 	pDeviceContext->IASetInputLayout(ground.pGO_inputLayout);
 	pDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
@@ -885,6 +913,11 @@ bool DEMO::Run()
 	pDeviceContext->RSSetState(ground.pGORS);
 	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
 
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
 
 	//Parklight
 	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
@@ -984,7 +1017,7 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeInstanceBuffer);
 
 	SecureRelease(pLightingBuffer);
-
+	SecureRelease(pGroundNormalMap);
 	SecureRelease(pHeli_VSShader);
 	SecureRelease(pHeli_PSShader);
 	SecureRelease(pskybox_VSShader);

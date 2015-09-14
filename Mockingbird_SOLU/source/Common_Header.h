@@ -14,6 +14,7 @@ struct VERTEX
 	XMFLOAT3 pos;
 	XMFLOAT3 uv;
 	XMFLOAT3 normal;
+	XMFLOAT3 tangent;
 };
 
 
@@ -32,4 +33,5 @@ struct Scene
 {
 	XMMATRIX _view;
 	XMMATRIX _proj;
+	BOOL hasNormal;
 };

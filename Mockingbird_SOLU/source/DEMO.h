@@ -47,6 +47,7 @@ class DEMO
 
 
 	//Game Objects
+	ID3D11ShaderResourceView* pGroundNormalMap = nullptr;
 	XMMATRIX cube_matrix;
 	ID3D11Buffer* pCube = nullptr;
 	ID3D11InputLayout* pCube_inputLayout = nullptr;
