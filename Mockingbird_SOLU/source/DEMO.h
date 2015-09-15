@@ -21,6 +21,7 @@ struct Lights
 
 class DEMO
 {
+public:
 	//Windows
 	HINSTANCE						application;
 	WNDPROC							appWndProc;
@@ -33,6 +34,8 @@ class DEMO
 	ID3D11Device* pDevice = nullptr;
 	IDXGISwapChain* pSwapchain = nullptr;
 	ID3D11DeviceContext* pDeviceContext = nullptr;
+	ID3D11DeviceContext* pDeferredDeviceContext = nullptr;
+	ID3D11CommandList* pCommandList = nullptr;
 	ID3D11RenderTargetView* pRenderTargetView = nullptr;
 	ID3D11DepthStencilView* pDepthStencilView = nullptr;
 	ID3D11Texture2D* pZBuffer = nullptr;
@@ -48,6 +51,7 @@ class DEMO
 
 	//Game Objects
 	ID3D11ShaderResourceView* pGroundNormalMap = nullptr;
+
 	XMMATRIX cube_matrix;
 	ID3D11Buffer* pCube = nullptr;
 	ID3D11InputLayout* pCube_inputLayout = nullptr;
@@ -88,7 +92,7 @@ class DEMO
 	XTime xTime;
 	Lights allLights;
 	ID3D11Buffer* pLightingBuffer = nullptr;
-	XMFLOAT4 DLSpos = {0.0f,0.0f,30.0f,1.0f};
+	XMFLOAT4 DLSpos = { 0.0f,0.0f,30.0f,1.0f };
 	XMFLOAT4 DLEpos = { 0.0f,0.0f,-30.0f,1.0f };
 
 
@@ -96,14 +100,22 @@ class DEMO
 
 	DEMO(HINSTANCE hinst, WNDPROC proc);
 	~DEMO();
-	DEMO(const DEMO&) = delete;	
-	DEMO& operator=(const DEMO&) = delete;	
-public:
+	DEMO(const DEMO&) = delete;
+	DEMO& operator=(const DEMO&) = delete;
+
+
+
+
 	static DEMO* GetInstance(HINSTANCE hinst, WNDPROC proc);
-	
+
 	void ResizeWindow(UINT _width, UINT _height);
 	bool Run();
 	bool ShutDown();
+
+	void Draw();
+
+
+	void Load();
 
 };
 

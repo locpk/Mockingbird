@@ -63,8 +63,362 @@ float ObjectToCamera(XMFLOAT4X4* _objMatrix, XMFLOAT3 _cameraPos)
 }
 
 
+void DrawThread(DEMO* _myDEMO)
+{
+	if (_myDEMO)
+	{
+		_myDEMO->Draw();
+	}
+}
+
+void DEMO::Draw()
+{
+	pDeferredDeviceContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);
+	pDeferredDeviceContext->RSSetViewports(1, &viewport);
+	//Clear background
+	float clearColours[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+	pDeferredDeviceContext->ClearRenderTargetView(pRenderTargetView, clearColours);
+	pDeferredDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	pDeferredDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
 
 
+
+	allLights.sLight.lightPosition = { camera.GetPosition().x,camera.GetPosition().y,camera.GetPosition().z,1.0f };
+	allLights.sLight.coneDirAndRatio = { camera.GetForward().x,camera.GetForward().y,camera.GetForward().z,0.8f };
+	//Map Light Constant Buffer
+	D3D11_MAPPED_SUBRESOURCE mapLightingSubresource;
+	pDeferredDeviceContext->Map(pLightingBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapLightingSubresource);
+	memcpy(mapLightingSubresource.pData, &allLights, sizeof(allLights));
+	pDeferredDeviceContext->Unmap(pLightingBuffer, 0);
+	pDeferredDeviceContext->PSSetConstantBuffers(2, 1, &pLightingBuffer);
+
+
+
+	scene.hasNormal = true;
+	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeferredDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
+
+
+
+	UINT offset = 0;
+	//Heli
+	D3D11_MAPPED_SUBRESOURCE mapObjectSubresource;
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &heli.GO_worldMatrix, sizeof(heli.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &heli.pGO_ShaderResourceView);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &heli.pGOvertices, &heli.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(heli.pGO_inputLayout);
+	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeferredDeviceContext->RSSetState(heli.pGORS);
+	pDeferredDeviceContext->Draw((UINT)heli.GOrawData.size(), 0);
+
+
+	//ground
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &ground.GO_worldMatrix, sizeof(ground.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	scene.hasNormal = true;
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeferredDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeferredDeviceContext->PSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
+
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
+	pDeferredDeviceContext->PSSetShaderResources(1, 1, &pGroundNormalMap);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &ground.pGOvertices, &ground.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(ground.pGO_inputLayout);
+	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeferredDeviceContext->RSSetState(ground.pGORS);
+	pDeferredDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
+
+
+	scene.hasNormal = false;
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeferredDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeferredDeviceContext->PSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
+
+
+	//Parklight
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &parkLight.GO_worldMatrix, sizeof(parkLight.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &parkLight.GO_worldMatrix, sizeof(parkLight.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &parkLight.pGO_ShaderResourceView);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &parkLight.pGOvertices, &parkLight.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(parkLight.pGO_inputLayout);
+	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeferredDeviceContext->RSSetState(parkLight.pGORS);
+	pDeferredDeviceContext->Draw((UINT)parkLight.GOrawData.size(), 0);
+
+
+
+	//Skybox
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &skybox.GO_worldMatrix, sizeof(skybox.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &skybox.pGO_ShaderResourceView);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &skybox.pGOvertices, &skybox.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(skybox.pGO_inputLayout);
+	pDeferredDeviceContext->VSSetShader(pskybox_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pskybox_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeferredDeviceContext->RSSetState(skybox.pGORSf);
+	pDeferredDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
+
+
+
+
+
+
+	//Star
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &star_matrix, sizeof(star_matrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	UINT starStride = sizeof(MyVertex);
+	pDeferredDeviceContext->RSSetState(NULL);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &pStar, &starStride, &offset);
+	pDeferredDeviceContext->VSSetShader(pStar_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pStar_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetIndexBuffer(pStar_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	pDeferredDeviceContext->IASetInputLayout(pStar_inputLayout);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pDeferredDeviceContext->DrawIndexed(60, 0, 0);
+
+
+
+
+	//Cube
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	pDeferredDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
+	UINT cubestride[2] = { sizeof(_OBJ_VERT_),sizeof(XMFLOAT4X4) };
+	UINT cubeOffset[2] = { 0,0 };
+	ID3D11Buffer* cubeBufferandCubeInstanceBuffer[2] = { pCube, pCubeInstanceBuffer };
+
+	pDeferredDeviceContext->IASetVertexBuffers(0, 2, cubeBufferandCubeInstanceBuffer, cubestride, cubeOffset);
+	pDeferredDeviceContext->VSSetShader(pProjection_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pCube_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetIndexBuffer(pCube_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	pDeferredDeviceContext->IASetInputLayout(pCube_inputLayout);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+	pDeferredDeviceContext->RSSetState(pCubeRSf);
+	pDeferredDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
+	pDeferredDeviceContext->RSSetState(pCubeRSb);
+	pDeferredDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
+
+
+
+
+
+
+	//Second Viewport
+
+	scene._proj = another_camera.GetProj();
+	scene._view = another_camera.GetView();
+	pDeferredDeviceContext->RSSetViewports(1, &another_viewport);
+	skybox.GO_worldMatrix = XMMatrixScaling(5.0f, 5.0f, 5.0f) * XMMatrixTranslation(another_camera.GetPosition().x, another_camera.GetPosition().y, another_camera.GetPosition().z);
+
+
+	pDeferredDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
+
+
+
+
+	//Heli
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &heli.GO_worldMatrix, sizeof(heli.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &heli.pGO_ShaderResourceView);
+
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &heli.pGOvertices, &heli.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(heli.pGO_inputLayout);
+	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeferredDeviceContext->RSSetState(heli.pGORS);
+	pDeferredDeviceContext->Draw((UINT)heli.GOrawData.size(), 0);
+
+
+
+
+	//ground
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &ground.GO_worldMatrix, sizeof(ground.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	scene.hasNormal = true;
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeferredDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeferredDeviceContext->PSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
+
+
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
+	pDeferredDeviceContext->PSSetShaderResources(1, 1, &pGroundNormalMap);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &ground.pGOvertices, &ground.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(ground.pGO_inputLayout);
+	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeferredDeviceContext->RSSetState(ground.pGORS);
+
+	pDeferredDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
+
+
+	scene.hasNormal = false;
+	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
+	pDeferredDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
+	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
+	pDeferredDeviceContext->PSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
+
+
+	//Parklight
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &parkLight.GO_worldMatrix, sizeof(parkLight.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &parkLight.pGO_ShaderResourceView);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &parkLight.pGOvertices, &parkLight.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(parkLight.pGO_inputLayout);
+	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeferredDeviceContext->RSSetState(parkLight.pGORS);
+	pDeferredDeviceContext->Draw((UINT)parkLight.GOrawData.size(), 0);
+
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &star_matrix, sizeof(star_matrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	//Star
+	pDeferredDeviceContext->RSSetState(NULL);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &pStar, &starStride, &offset);
+	pDeferredDeviceContext->VSSetShader(pStar_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pStar_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetIndexBuffer(pStar_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	pDeferredDeviceContext->IASetInputLayout(pStar_inputLayout);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pDeferredDeviceContext->DrawIndexed(60, 0, 0);
+
+
+
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	//Cube
+	pDeferredDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
+
+	pDeferredDeviceContext->IASetVertexBuffers(0, 2, cubeBufferandCubeInstanceBuffer, cubestride, cubeOffset);
+	pDeferredDeviceContext->VSSetShader(pProjection_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pCube_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetIndexBuffer(pCube_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	pDeferredDeviceContext->IASetInputLayout(pCube_inputLayout);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+	pDeferredDeviceContext->RSSetState(pCubeRSf);
+	pDeferredDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
+	pDeferredDeviceContext->RSSetState(pCubeRSb);
+	pDeferredDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
+
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &skybox.GO_worldMatrix, sizeof(skybox.GO_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &skybox.pGO_ShaderResourceView);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &skybox.pGOvertices, &skybox.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(skybox.pGO_inputLayout);
+	pDeferredDeviceContext->VSSetShader(pskybox_VSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pskybox_PSShader, NULL, 0);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pDeferredDeviceContext->RSSetState(skybox.pGORSf);
+	pDeferredDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
+	pDeferredDeviceContext->FinishCommandList(false, &pCommandList);
+}
+
+
+void  DEMO::Load()
+{
+	heli.CreateGameObject(pDevice, "asset/heli.obj", Cube_VS, sizeof(Cube_VS));
+	skybox.CreateGameObject(pDevice, "asset/skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
+	ground.CreateGameObject(pDevice, "asset/Ground.obj", Cube_VS, sizeof(Cube_VS));
+
+	parkLight.CreateGameObject(pDevice, "asset/ParkLight.obj", Cube_VS, sizeof(Cube_VS));
+	CreateDDSTextureFromFile(pDevice, L"asset/Ground_norm.dds", NULL, &pGroundNormalMap);
+	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test1.dds", NULL, &pCubeShaderResourceView);
+}
+void LoadThread(DEMO* _myDEMO)
+{
+	if (_myDEMO)
+	{
+		_myDEMO->Load();
+	}
+}
 
 
 
@@ -147,7 +501,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 
 
 
-
+	pDevice->CreateDeferredContext(0, &pDeferredDeviceContext);
 	//Create Render Target View from back buffer
 	ID3D11Texture2D* pBackBuffer = nullptr;
 	pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
@@ -173,7 +527,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	another_viewport.Height = (float)swapchain_DESC.BufferDesc.Height;
 
 
-	
+
 
 	//Set up Depth Buffer
 	D3D11_TEXTURE2D_DESC ZBufferdesc;
@@ -302,16 +656,14 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	//Create Heli Shaders
 	pDevice->CreateVertexShader(Cube_VS, sizeof(Cube_VS), NULL, &pHeli_VSShader);
 	pDevice->CreatePixelShader(Cube_PS, sizeof(Cube_PS), NULL, &pHeli_PSShader);
-	heli.CreateGameObject(pDevice, "asset/heli.obj", Cube_VS, sizeof(Cube_VS));
-
-	ground.CreateGameObject(pDevice, "asset/Ground.obj", Cube_VS, sizeof(Cube_VS));
-	CreateDDSTextureFromFile(pDevice, L"asset/Ground_norm.dds", NULL, &pGroundNormalMap);
-	parkLight.CreateGameObject(pDevice, "asset/ParkLight.obj", Cube_VS, sizeof(Cube_VS));
-
-
 	pDevice->CreateVertexShader(SkyBox_VS, sizeof(SkyBox_VS), NULL, &pskybox_VSShader);
 	pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pskybox_PSShader);
-	skybox.CreateGameObject(pDevice, "asset/skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
+
+
+	thread load = thread(LoadThread, this);
+	load.join();
+
+
 
 
 	//Load Cube
@@ -339,10 +691,10 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "WORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 	};
 	pDevice->CreateInputLayout(cubeInputLayout, 7, Projection_VS, sizeof(Projection_VS), &pCube_inputLayout);
 
@@ -378,17 +730,17 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	XMStoreFloat4x4(&temp, XMMatrixTranslation(-2.0f, 1.0f, -2.0f));
 	cubeInstancedData.push_back(temp);
 
-	D3D11_BUFFER_DESC vbd;
-	vbd.Usage = D3D11_USAGE_DYNAMIC;
-	vbd.ByteWidth = sizeof(XMFLOAT4X4) * (unsigned int)cubeInstancedData.size();
-	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	vbd.MiscFlags = 0;
-	vbd.StructureByteStride = 0;
+	D3D11_BUFFER_DESC cubeInstanceBufferDESC;
+	cubeInstanceBufferDESC.Usage = D3D11_USAGE_DYNAMIC;
+	cubeInstanceBufferDESC.ByteWidth = sizeof(XMFLOAT4X4) * (unsigned int)cubeInstancedData.size();
+	cubeInstanceBufferDESC.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	cubeInstanceBufferDESC.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cubeInstanceBufferDESC.MiscFlags = 0;
+	cubeInstanceBufferDESC.StructureByteStride = 0;
 	D3D11_SUBRESOURCE_DATA instData;
 	ZeroMemory(&instData, sizeof(instData));
 	instData.pSysMem = cubeInstancedData.data();
-	pDevice->CreateBuffer(&vbd, &instData, &pCubeInstanceBuffer);
+	pDevice->CreateBuffer(&cubeInstanceBufferDESC, &instData, &pCubeInstanceBuffer);
 
 
 	//Create Constant buffer
@@ -423,7 +775,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateBuffer(&constbufferSceneDesc, NULL, &pConstantSceneBuffer);
 
 
-	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test.dds", NULL, &pCubeShaderResourceView);
+
 
 
 	//Create Cube Texture Sampler
@@ -488,12 +840,12 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 
 	//Lights
 	allLights.amLight.lightColor = { 0.2f, 0.2f, 0.2f,1.0f };
-	allLights.dLight.lightColor = { 10.0f, 0.0f, 0.0f,1.0f };
+	allLights.dLight.lightColor = { 1.0f, 1.0f, 1.0f,1.0f };
 	allLights.dLight.lightDirection = { 0.58f, -0.58f, 0.58f,1.0f };
-	allLights.pLight.lightColor = { 0.0f,10.0f,0.0f,1.0f };
+	allLights.pLight.lightColor = { 0.0f,1.0f,0.0f,1.0f };
 	allLights.pLight.lightPosition = { 5.0f,3.0f,0.0f,1.0f };
 	allLights.sLight.lightPosition = { camera.GetPosition().x,camera.GetPosition().y,camera.GetPosition().z,1.0f };
-	allLights.sLight.lightColor = { 0.0f,0.0f,20.0f,1.0f };
+	allLights.sLight.lightColor = { 0.0f,0.0f,1.0f,1.0f };
 	allLights.sLight.coneDirAndRatio = { camera.GetForward().x,camera.GetForward().y,camera.GetForward().z,0.8f };
 
 
@@ -556,9 +908,9 @@ bool DEMO::Run()
 	{
 		SHORT left, right, up, down, shift, w, a, s, d;
 		left = GetAsyncKeyState(VK_LEFT);
-		a = GetAsyncKeyState('A') ;
-		right = GetAsyncKeyState(VK_RIGHT) ;
-		d = GetAsyncKeyState('D') ;
+		a = GetAsyncKeyState('A');
+		right = GetAsyncKeyState(VK_RIGHT);
+		d = GetAsyncKeyState('D');
 		up = GetAsyncKeyState(VK_UP);
 		w = GetAsyncKeyState('W');
 		down = GetAsyncKeyState(VK_DOWN);
@@ -597,11 +949,11 @@ bool DEMO::Run()
 		}
 
 		GetCursorPos(&CurPos);
-		if (GetAsyncKeyState(VK_LBUTTON) && (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
+		if (/*GetAsyncKeyState(VK_LBUTTON) &&*/ (lastPos.x != CurPos.x || lastPos.y != CurPos.y))
 		{
 			current_camera->Pitch(0.15f*(CurPos.y - lastPos.y));
 			current_camera->RotateY(0.15f*(CurPos.x - lastPos.x));
-			
+
 
 			RECT rect;
 			GetWindowRect(window, &rect);
@@ -640,7 +992,7 @@ bool DEMO::Run()
 				swap(cubeInstancedData[1], cubeInstancedData[2]);
 			}
 		}
-		
+
 		SecureRelease(pCubeInstanceBuffer);
 		D3D11_BUFFER_DESC vbd;
 		vbd.Usage = D3D11_USAGE_DYNAMIC;
@@ -672,324 +1024,19 @@ bool DEMO::Run()
 		current_camera = &camera;
 
 	}
+
 	scene._proj = camera.GetProj();
 	scene._view = camera.GetView();
-	pDeviceContext->RSSetViewports(1, &viewport);
 	skybox.GO_worldMatrix = XMMatrixScaling(5.0f, 5.0f, 5.0f) * XMMatrixTranslation(camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 
 
-	//Clear background
-	float clearColours[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-	pDeviceContext->ClearRenderTargetView(pRenderTargetView, clearColours);
-	pDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	pDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
-
-
-
-	allLights.sLight.lightPosition = { camera.GetPosition().x,camera.GetPosition().y,camera.GetPosition().z,1.0f };
-	allLights.sLight.coneDirAndRatio = { camera.GetForward().x,camera.GetForward().y,camera.GetForward().z,0.8f };
-	//Map Light Constant Buffer
-	D3D11_MAPPED_SUBRESOURCE mapLightingSubresource;
-	pDeviceContext->Map(pLightingBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapLightingSubresource);
-	memcpy(mapLightingSubresource.pData, &allLights, sizeof(allLights));
-	pDeviceContext->Unmap(pLightingBuffer, 0);
-	pDeviceContext->PSSetConstantBuffers(2, 1, &pLightingBuffer);
-
-
-
-	
-	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
-	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
-	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
-	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
-	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-
-	UINT offset = 0;
-	//Heli
-	D3D11_MAPPED_SUBRESOURCE mapObjectSubresource;
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &heli.GO_worldMatrix, sizeof(heli.GO_worldMatrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	pDeviceContext->PSSetShaderResources(0, 1, &heli.pGO_ShaderResourceView);
-	pDeviceContext->IASetVertexBuffers(0, 1, &heli.pGOvertices, &heli.Stride, &offset);
-	pDeviceContext->IASetInputLayout(heli.pGO_inputLayout);
-	pDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	pDeviceContext->RSSetState(heli.pGORS);
-	pDeviceContext->Draw((UINT)heli.GOrawData.size(), 0);
-
-
-	//ground
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &ground.GO_worldMatrix, sizeof(ground.GO_worldMatrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	scene.hasNormal = true;
-	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
-	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
-	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
-	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-	scene.hasNormal = false;
-	
-
-	pDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
-	pDeviceContext->PSSetShaderResources(1, 1, &pGroundNormalMap);
-	pDeviceContext->IASetVertexBuffers(0, 1, &ground.pGOvertices, &ground.Stride, &offset);
-	pDeviceContext->IASetInputLayout(ground.pGO_inputLayout);
-	pDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	pDeviceContext->RSSetState(ground.pGORS);
-	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
-
-	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
-	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
-	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
-	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-
-	//Parklight
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &parkLight.GO_worldMatrix, sizeof(parkLight.GO_worldMatrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	pDeviceContext->PSSetShaderResources(0, 1, &parkLight.pGO_ShaderResourceView);
-	pDeviceContext->IASetVertexBuffers(0, 1, &parkLight.pGOvertices, &parkLight.Stride, &offset);
-	pDeviceContext->IASetInputLayout(parkLight.pGO_inputLayout);
-	pDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	pDeviceContext->RSSetState(parkLight.pGORS);
-	pDeviceContext->Draw((UINT)parkLight.GOrawData.size(), 0);
-
-
-	//Skybox
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &skybox.GO_worldMatrix, sizeof(skybox.GO_worldMatrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	pDeviceContext->PSSetShaderResources(0, 1, &skybox.pGO_ShaderResourceView);
-	pDeviceContext->IASetVertexBuffers(0, 1, &skybox.pGOvertices, &skybox.Stride, &offset);
-	pDeviceContext->IASetInputLayout(skybox.pGO_inputLayout);
-	pDeviceContext->VSSetShader(pskybox_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pskybox_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	pDeviceContext->RSSetState(skybox.pGORSf);
-	pDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
-
-
-
-
-
-
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &star_matrix, sizeof(star_matrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-	//Star
-
-	UINT starStride = sizeof(MyVertex);
-	pDeviceContext->RSSetState(NULL);
-	pDeviceContext->IASetVertexBuffers(0, 1, &pStar, &starStride, &offset);
-	pDeviceContext->VSSetShader(pStar_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pStar_PSShader, NULL, 0);
-	pDeviceContext->IASetIndexBuffer(pStar_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	pDeviceContext->IASetInputLayout(pStar_inputLayout);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pDeviceContext->DrawIndexed(60, 0, 0);
-
-
-
-
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-	//Cube
-	pDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
-	pDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
-	UINT cubestride[2] = { sizeof(_OBJ_VERT_),sizeof(XMMATRIX) };
-	UINT cubeOffset[2] = { 0,0 };
-	ID3D11Buffer* vbs[2] = { pCube, pCubeInstanceBuffer };
-
-	pDeviceContext->IASetVertexBuffers(0, 2, vbs, cubestride, cubeOffset);
-	pDeviceContext->VSSetShader(pProjection_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pCube_PSShader, NULL, 0);
-	pDeviceContext->IASetIndexBuffer(pCube_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	pDeviceContext->IASetInputLayout(pCube_inputLayout);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-
-	pDeviceContext->RSSetState(pCubeRSf);
-	pDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
-	pDeviceContext->RSSetState(pCubeRSb);
-	pDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
-
-
-
-
-
-
-	//Second Viewport
-
-	scene._proj = another_camera.GetProj();
-	scene._view = another_camera.GetView();
-	pDeviceContext->RSSetViewports(1, &another_viewport);
-	skybox.GO_worldMatrix = XMMatrixScaling(5.0f, 5.0f, 5.0f) * XMMatrixTranslation(another_camera.GetPosition().x, another_camera.GetPosition().y, another_camera.GetPosition().z);
-
-
-	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
-	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
-	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-
-
-
-
-	//Heli
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &heli.GO_worldMatrix, sizeof(heli.GO_worldMatrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	pDeviceContext->PSSetShaderResources(0, 1, &heli.pGO_ShaderResourceView);
-
-	pDeviceContext->IASetVertexBuffers(0, 1, &heli.pGOvertices, &heli.Stride, &offset);
-	pDeviceContext->IASetInputLayout(heli.pGO_inputLayout);
-	pDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	pDeviceContext->RSSetState(heli.pGORS);
-	pDeviceContext->Draw((UINT)heli.GOrawData.size(), 0);
-
-
-
-
-	//ground
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &ground.GO_worldMatrix, sizeof(ground.GO_worldMatrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	scene.hasNormal = true;
-	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
-	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
-	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
-	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-	scene.hasNormal = false;
-
-
-	pDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
-	pDeviceContext->PSSetShaderResources(1, 1, &pGroundNormalMap);
-	pDeviceContext->IASetVertexBuffers(0, 1, &ground.pGOvertices, &ground.Stride, &offset);
-	pDeviceContext->IASetInputLayout(ground.pGO_inputLayout);
-	pDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-
-	pDeviceContext->RSSetState(ground.pGORS);
-	pDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
-
-	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
-	pDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
-	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
-	pDeviceContext->Unmap(pConstantSceneBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-
-	//Parklight
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &parkLight.GO_worldMatrix, sizeof(parkLight.GO_worldMatrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	pDeviceContext->PSSetShaderResources(0, 1, &parkLight.pGO_ShaderResourceView);
-	pDeviceContext->IASetVertexBuffers(0, 1, &parkLight.pGOvertices, &parkLight.Stride, &offset);
-	pDeviceContext->IASetInputLayout(parkLight.pGO_inputLayout);
-	pDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	pDeviceContext->RSSetState(parkLight.pGORS);
-	pDeviceContext->Draw((UINT)parkLight.GOrawData.size(), 0);
-
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &star_matrix, sizeof(star_matrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-	//Star
-	pDeviceContext->RSSetState(NULL);
-	pDeviceContext->IASetVertexBuffers(0, 1, &pStar, &starStride, &offset);
-	pDeviceContext->VSSetShader(pStar_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pStar_PSShader, NULL, 0);
-	pDeviceContext->IASetIndexBuffer(pStar_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	pDeviceContext->IASetInputLayout(pStar_inputLayout);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pDeviceContext->DrawIndexed(60, 0, 0);
-
-
-
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &cube_matrix, sizeof(cube_matrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-	//Cube
-	pDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
-	pDeviceContext->PSSetShaderResources(0, 1, &pCubeShaderResourceView);
-
-	pDeviceContext->IASetVertexBuffers(0, 2, vbs, cubestride, cubeOffset);
-	pDeviceContext->VSSetShader(pProjection_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pCube_PSShader, NULL, 0);
-	pDeviceContext->IASetIndexBuffer(pCube_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	pDeviceContext->IASetInputLayout(pCube_inputLayout);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-
-	pDeviceContext->RSSetState(pCubeRSf);
-	pDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
-	pDeviceContext->RSSetState(pCubeRSb);
-	pDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
-
-	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
-	pDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
-	memcpy(mapObjectSubresource.pData, &skybox.GO_worldMatrix, sizeof(skybox.GO_worldMatrix));
-	pDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	pDeviceContext->PSSetShaderResources(0, 1, &skybox.pGO_ShaderResourceView);
-	pDeviceContext->IASetVertexBuffers(0, 1, &skybox.pGOvertices, &skybox.Stride, &offset);
-	pDeviceContext->IASetInputLayout(skybox.pGO_inputLayout);
-	pDeviceContext->VSSetShader(pskybox_VSShader, NULL, 0);
-	pDeviceContext->PSSetShader(pskybox_PSShader, NULL, 0);
-	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	pDeviceContext->RSSetState(skybox.pGORSf);
-	pDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
+	thread draw = thread(DrawThread, this);
+	draw.join();
+	if (pCommandList)
+	{
+		pDeviceContext->ExecuteCommandList(pCommandList, false);
+		pCommandList->Release();
+	}
 
 	pSwapchain->Present(0, 0);
 
@@ -1034,8 +1081,9 @@ bool DEMO::ShutDown()
 	SecureRelease(pConstantObjectBuffer);
 	SecureRelease(pConstantSceneBuffer);
 	SecureRelease(pBlendState);
+	//SecureRelease(pCommandList);
 
-
+	SecureRelease(pDeferredDeviceContext);
 	SecureRelease(pDeviceContext);
 	SecureRelease(pSwapchain);
 	SecureRelease(pDevice);

@@ -15,6 +15,11 @@ struct P_IN
 float4 main(P_IN input) : SV_TARGET
 {
 	input.tex.x = input.tex.x * 0.25;
-	return  baseTexture.Sample(filters, input.tex.xy);
+	float4 color = baseTexture.Sample(filters, input.tex.xy);
+	if (color.a == 0)
+	{
+		discard;
+	}
+	return color;
 
 }

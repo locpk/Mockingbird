@@ -14,7 +14,7 @@ struct V_OUT
 	float2 texOut : TEXCOORD;
 	float3 normalOut  : NORMAL;
 	float3 tangentOut  : TANGENT;
-	bool hasNormal : HAS;
+
 };
 cbuffer OBJECT : register(b0)
 {
@@ -30,7 +30,6 @@ V_OUT main(V_IN input)
 {
 
 	V_OUT output = (V_OUT)0;
-	// ensures translation is preserved during matrix multiply  
 	float4 localH = float4(input.posL, 1);
 	localH = mul(localH, worldMatrix);
 	output.posW = localH.xyz;
@@ -44,9 +43,8 @@ V_OUT main(V_IN input)
 	nor = mul(nor, worldMatrix);
 	output.normalOut = float3(nor.xyz);
 
-	float4 tan = float4(input.tangent, 0);
-	tan = mul(tan, worldMatrix);
+	float4 tan = mul(float4(input.tangent.xyz *-1 ,0), worldMatrix);
 	output.tangentOut = float3(tan.xyz);
-	output.hasNormal = hasNormal;
-	return output; // send projected vertex to the rasterizer stage
+
+	return output; 
 }
