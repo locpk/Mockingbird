@@ -31,6 +31,7 @@ struct P_IN
 	float2 tex : TEXCOORD;
 	float3 normal  : NORMAL;
 	float3 tangent : TANGENT;
+	float3 biTangent :BITANGENT;
 };
 
 float4 main(P_IN input) : SV_TARGET
@@ -47,6 +48,12 @@ float4 main(P_IN input) : SV_TARGET
 		float3 biTangent = cross(input.normal, input.tangent);
 		float3x3 texSpace = float3x3(input.tangent, biTangent, input.normal);
 		input.normal = (mul((float3)normalMap, texSpace));
+		/*float4 normalMap = normTexture.Sample(filters, input.tex);
+		normalMap = (2.0f*normalMap) - 1.0f;
+		float3x3 TBN = float3x3(normalize(input.tangent), normalize(input.biTangent), normalize(input.normal));
+
+		input.normal = mul(normalMap, TBN);*/
+
 	}
 
 

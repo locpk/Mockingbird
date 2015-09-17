@@ -111,7 +111,7 @@ void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model, string& _texture
 		temp.pos = temp_vertices[posIndex];
 		temp.uv = temp_uvs[uvIndex];
 		temp.normal = temp_normals[nIndex];
-		temp.tangent = { 0.0f,0.0f,0.0f };
+		temp.tangent = { 0.0f,0.0f,0.0f,0.0f };
 		_model.push_back(temp);
 	}
 
@@ -120,7 +120,8 @@ void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model, string& _texture
 
 		if (i % 3 == 0)
 		{
-			XMFLOAT3 edge1 = { _model[i].pos.x - _model[i + 2].pos.x,_model[i].pos.y - _model[i + 2].pos.y,_model[i].pos.z - _model[i + 2].pos.z };
+			
+			/*XMFLOAT3 edge1 = { _model[i].pos.x - _model[i + 2].pos.x,_model[i].pos.y - _model[i + 2].pos.y,_model[i].pos.z - _model[i + 2].pos.z };
 			XMFLOAT3 edge2 = { _model[i + 2].pos.x - _model[i + 1].pos.x,_model[i + 2].pos.y - _model[i + 1].pos.y,_model[i + 2].pos.z - _model[i + 1].pos.z };
 			float tcU1 = _model[i].uv.x - _model[i + 2].uv.x;
 			float tcV1 = _model[i].uv.y - _model[i + 2].uv.y;
@@ -131,10 +132,46 @@ void LoadModelFromOBJ(string _filepath, vector<VERTEX>& _model, string& _texture
 			_model[i].tangent.z = (tcV1 * edge1.z - tcV2 * edge2.z) * (1.0f / (tcU1 * tcV2 - tcU2 * tcV1));
 			XMVECTOR nor = XMVector4Normalize(XMLoadFloat3(&_model[i].tangent));
 			XMStoreFloat3(&_model[i].tangent, nor);
-			_model[i + 2].tangent = _model[i + 1].tangent = _model[i].tangent;
+			_model[i + 2].tangent = _model[i + 1].tangent = _model[i].tangent;*/
+
 			
+
+			XMFLOAT3 edge1 = { _model[i + 1].pos.x - _model[i].pos.x,_model[i + 1].pos.y - _model[i].pos.y,_model[i + 1].pos.z - _model[i].pos.z };
+			XMFLOAT3 edge2 = { _model[i + 2].pos.x - _model[i].pos.x,_model[i + 2].pos.y - _model[i].pos.y,_model[i + 2].pos.z - _model[i].pos.z };
+			float tcU1 = _model[i + 1].uv.x - _model[i].uv.x;
+			float tcV1 = _model[i + 1].uv.y - _model[i].uv.y;
+			float tcU2 = _model[i + 2].uv.x - _model[i].uv.x;
+			float tcV2 = _model[i + 2].uv.y - _model[i].uv.y;
+			float ratio = 1.0f / (tcU1 * tcV2 - tcU2 * tcV1);
+			XMFLOAT3 uDirection = {
+				(tcV2 * edge1.x - tcV1 * edge2.x) * ratio,
+				(tcV2 * edge1.y - tcV1 * edge2.y) * ratio,
+				(tcV2 * edge1.z - tcV1 * edge2.z) * ratio
+			};
+
+			XMFLOAT3 vDirection = {
+				(tcU1 * edge2.x - tcU2 * edge1.x) * ratio,
+				(tcU1 * edge2.y - tcU2 * edge1.y) * ratio,
+				(tcU1 * edge2.z - tcU2 * edge1.z) * ratio
+			};
+
+			XMVECTOR uDirNor = XMVector3Normalize(XMLoadFloat3(&uDirection));
+			XMVECTOR dotResult = XMVector3Dot(XMLoadFloat3(&_model[i].normal), uDirNor);
+			XMVECTOR tangent = uDirNor - XMLoadFloat3(&_model[i].normal) * dotResult;
+			tangent = XMVector3Normalize(tangent);
+			XMFLOAT3 temp;
+			XMStoreFloat3(&temp, tangent);
+			_model[i].tangent.x = temp.x;
+			_model[i].tangent.y = temp.y;
+			_model[i].tangent.z = temp.z;
+			XMVECTOR vDirNor = XMVector3Normalize(XMLoadFloat3(&vDirection));
+			XMVECTOR crossResult = XMVector3Cross(XMLoadFloat3(&_model[i].normal), XMLoadFloat3(&uDirection));
+			XMVECTOR dotResult1 = XMVector3Dot(crossResult, vDirNor);
+			XMFLOAT3 dot;
+			XMStoreFloat3(&dot, dotResult1);
+			_model[i].tangent.w = (dot.x < 0.0f) ? -1.0f : 1.0f;
 		}
-		
+
 
 	}
 	int i = 0;
@@ -206,7 +243,7 @@ void GameObject::CreateGameObject(ID3D11Device  * _device, string _filepath, con
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	_device->CreateInputLayout(InputLayout, 4, _VS, _VSize, &pGO_inputLayout);
 

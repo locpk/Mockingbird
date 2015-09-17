@@ -5,7 +5,7 @@ struct V_IN
 	float3 posL : POSITION;
 	float3 tex : TEXCOORD;
 	float3 normal : NORMAL;
-	float3 tangent : TANGENT;
+	float4 tangent : TANGENT;
 };
 struct V_OUT
 {
@@ -14,6 +14,7 @@ struct V_OUT
 	float2 texOut : TEXCOORD;
 	float3 normalOut  : NORMAL;
 	float3 tangentOut  : TANGENT;
+	float3 biTangentOut  : BITANGENT;
 
 };
 cbuffer OBJECT : register(b0)
@@ -43,8 +44,10 @@ V_OUT main(V_IN input)
 	nor = mul(nor, worldMatrix);
 	output.normalOut = float3(nor.xyz);
 
-	float4 tan = mul(float4(input.tangent.xyz *-1 ,0), worldMatrix);
+	float4 tan = mul(float4(input.tangent.xyz * input.tangent.w,0), worldMatrix);
 	output.tangentOut = float3(tan.xyz);
+
+	output.biTangentOut = mul(float4(cross(input.normal.xyz, tan.xyz), 0.0f), worldMatrix);
 
 	return output; 
 }

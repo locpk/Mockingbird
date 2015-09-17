@@ -15,7 +15,7 @@ struct VERTEX
 	XMFLOAT3 pos;
 	XMFLOAT3 uv;
 	XMFLOAT3 normal;
-	XMFLOAT3 tangent;
+	XMFLOAT4 tangent;
 };
 
 
