@@ -35,4 +35,5 @@ struct Scene
 	XMMATRIX _view;
 	XMMATRIX _proj;
 	BOOL hasNormal;
+	XMFLOAT3 _cameraPos;
 };

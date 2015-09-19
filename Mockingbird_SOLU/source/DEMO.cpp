@@ -9,6 +9,9 @@
 #include "CSH\Cube_PS.csh"
 #include "CSH\SkyBox_VS.csh"
 #include "CSH\SkyBox_PS.csh"
+#include "CSH\Quad_VS.csh"
+#include "CSH\Quad_GS.csh"
+#include "CSH\Quad_PS.csh"
 
 #define MSAA 1
 #define MSAA_COUNT 8
@@ -73,6 +76,7 @@ void DrawThread(DEMO* _myDEMO)
 
 void DEMO::Draw()
 {
+
 	pDeferredDeviceContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);
 	pDeferredDeviceContext->RSSetViewports(1, &viewport);
 	//Clear background
@@ -94,6 +98,7 @@ void DEMO::Draw()
 
 
 
+	scene._cameraPos = camera.GetPosition();
 	scene.hasNormal = true;
 	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
 	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
@@ -250,14 +255,15 @@ void DEMO::Draw()
 	pDeferredDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
 
 
+	
 
 
-
-
+	
 	//Second Viewport
 
 	scene._proj = another_camera.GetProj();
 	scene._view = another_camera.GetView();
+	scene._cameraPos = another_camera.GetPosition();
 	pDeferredDeviceContext->RSSetViewports(1, &another_viewport);
 	skybox.GO_worldMatrix = XMMatrixScaling(5.0f, 5.0f, 5.0f) * XMMatrixTranslation(another_camera.GetPosition().x, another_camera.GetPosition().y, another_camera.GetPosition().z);
 
@@ -398,6 +404,56 @@ void DEMO::Draw()
 
 	pDeferredDeviceContext->RSSetState(skybox.pGORSf);
 	pDeferredDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
+
+
+
+	D3D11_VIEWPORT viewports[2];
+	viewports[0] = viewport;
+	viewports[1] = another_viewport;
+	pDeferredDeviceContext->RSSetViewports(2, viewports);
+
+	XMMATRIX view[2]; 
+	view[0] = camera.GetView();
+	view[1] = another_camera.GetView();
+	pDeferredDeviceContext->Map(pConstantQuadBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
+	memcpy(mapSceneSubresource.pData, &view, sizeof(XMMATRIX)* 2);
+	pDeferredDeviceContext->Unmap(pConstantQuadBuffer, 0);
+	pDeferredDeviceContext->GSSetConstantBuffers(1, 1, &pConstantQuadBuffer);
+	//Quad
+	ID3D11Texture2D* pBackBuffer = nullptr;
+	UINT Quadstride = sizeof(XMFLOAT4);
+	UINT QuadOffset = 0;
+	ID3D11ShaderResourceView* nullSRV = nullptr;
+	pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
+	pDeferredDeviceContext->ResolveSubresource(pQuad_texture, 0, pBackBuffer, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+	SecureRelease(pBackBuffer);
+	
+
+	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
+	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
+	memcpy(mapObjectSubresource.pData, &quad_worldMatrix, sizeof(quad_worldMatrix));
+	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	pDeferredDeviceContext->GSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
+	pDeferredDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
+
+	pDeferredDeviceContext->PSSetShaderResources(1, 1, &pQuadSRV);
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &pQuadBuffer, &Quadstride, &QuadOffset);
+	pDeferredDeviceContext->VSSetShader(pQuad_VSShader, NULL, 0);
+	pDeferredDeviceContext->GSSetShader(pQuad_GSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetShader(pQuad_PSShader, NULL, 0);
+	pDeferredDeviceContext->PSSetSamplers(0, 1, &pCubeTextureSampler);
+	pDeferredDeviceContext->IASetInputLayout(pQuadInputLayout);
+	pDeferredDeviceContext->RSSetState(NULL);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	pDeferredDeviceContext->Draw(1, 0);
+	pDeferredDeviceContext->GSSetShader(NULL, NULL, 0);
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &nullSRV);
+	
+
+
+
+	//Finishing Command
 	pDeferredDeviceContext->FinishCommandList(false, &pCommandList);
 }
 
@@ -411,6 +467,9 @@ void  DEMO::Load()
 	parkLight.CreateGameObject(pDevice, "asset/ParkLight.obj", Cube_VS, sizeof(Cube_VS));
 	CreateDDSTextureFromFile(pDevice, L"asset/Ground_norm.dds", NULL, &pGroundNormalMap);
 	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test1.dds", NULL, &pCubeShaderResourceView);
+	//CreateDDSTextureFromFile(pDevice, L"asset/Ground.dds", NULL, &pQuadSRV);
+
+	
 }
 void LoadThread(DEMO* _myDEMO)
 {
@@ -469,7 +528,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&swapchain_DESC, sizeof(swapchain_DESC));
 	swapchain_DESC.BufferCount = 1;
 	swapchain_DESC.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swapchain_DESC.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapchain_DESC.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
 	swapchain_DESC.BufferDesc.Width = (UINT)BACKBUFFER_WIDTH;
 	swapchain_DESC.BufferDesc.Height = (UINT)BACKBUFFER_HEIGHT;
 	swapchain_DESC.BufferDesc.RefreshRate.Numerator = 60;
@@ -506,7 +565,30 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	ID3D11Texture2D* pBackBuffer = nullptr;
 	pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
 	pDevice->CreateRenderTargetView(pBackBuffer, 0, &pRenderTargetView);
+
+
+
+
+	D3D11_TEXTURE2D_DESC renderToTextureDesc;
+	ZeroMemory(&renderToTextureDesc, sizeof(renderToTextureDesc));
+	renderToTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+	renderToTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	renderToTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	renderToTextureDesc.Height = swapchain_DESC.BufferDesc.Height;
+	renderToTextureDesc.Width = swapchain_DESC.BufferDesc.Width;
+	renderToTextureDesc.SampleDesc.Count = 1;
+	renderToTextureDesc.ArraySize = 1;
+	renderToTextureDesc.MipLevels = 1;
+	pDevice->CreateTexture2D(&renderToTextureDesc, NULL, &pQuad_texture);
+	pDevice->CreateRenderTargetView(pQuad_texture, 0, &pQuadRTV);
+	quadDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	quadDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	quadDesc.Texture2D.MipLevels = 1;
+	quadDesc.Texture2D.MostDetailedMip = 0;
+	pDevice->CreateShaderResourceView(pQuad_texture, &quadDesc, &pQuadSRV);
 	SecureRelease(pBackBuffer);
+
+
 
 
 	//Set up view port
@@ -664,6 +746,30 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	load.join();
 
 
+	//Load Quad
+	quad_worldMatrix = XMMatrixIdentity();
+	D3D11_BUFFER_DESC quadBufferDesc;
+	ZeroMemory(&quadBufferDesc, sizeof(quadBufferDesc));
+	quadBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	quadBufferDesc.ByteWidth = sizeof(XMFLOAT4);
+	quadBufferDesc.CPUAccessFlags = NULL;
+	quadBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	quadBufferDesc.MiscFlags = 0;
+	quadBufferDesc.StructureByteStride = 0;
+	D3D11_SUBRESOURCE_DATA quadData;
+	ZeroMemory(&quadData, sizeof(quadData));
+	quadData.pSysMem = &quad_pos;
+	pDevice->CreateBuffer(&quadBufferDesc, &quadData, &pQuadBuffer);
+	pDevice->CreateVertexShader(Quad_VS, sizeof(Quad_VS), NULL, &pQuad_VSShader);
+	pDevice->CreateGeometryShader(Quad_GS, sizeof(Quad_GS), NULL, &pQuad_GSShader);
+	pDevice->CreatePixelShader(Quad_PS, sizeof(Quad_PS), NULL, &pQuad_PSShader);
+
+	D3D11_INPUT_ELEMENT_DESC quadInputLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	
+	};
+	pDevice->CreateInputLayout(quadInputLayout, 1, Quad_VS, sizeof(Quad_VS), &pQuadInputLayout);
 
 
 	//Load Cube
@@ -773,6 +879,16 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	constbufferSceneDesc.MiscFlags = 0;
 	constbufferSceneDesc.StructureByteStride = 0;
 	pDevice->CreateBuffer(&constbufferSceneDesc, NULL, &pConstantSceneBuffer);
+
+	D3D11_BUFFER_DESC constbufferQuadDesc;
+	ZeroMemory(&constbufferQuadDesc, sizeof(constbufferQuadDesc));
+	constbufferQuadDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constbufferQuadDesc.ByteWidth = sizeof(Scene);
+	constbufferQuadDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	constbufferQuadDesc.Usage = D3D11_USAGE_DYNAMIC;
+	constbufferQuadDesc.MiscFlags = 0;
+	constbufferQuadDesc.StructureByteStride = 0;
+	pDevice->CreateBuffer(&constbufferQuadDesc, NULL, &pConstantQuadBuffer);
 
 
 
@@ -1062,6 +1178,14 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeRSf);
 	SecureRelease(pCubeRSb);
 	SecureRelease(pCubeInstanceBuffer);
+
+	SecureRelease(pQuadBuffer);
+	SecureRelease(pQuadInputLayout);
+	SecureRelease(pQuad_VSShader);
+	SecureRelease(pQuad_GSShader);
+	SecureRelease(pQuad_PSShader);
+	SecureRelease(pQuadSRV);
+
 
 	SecureRelease(pLightingBuffer);
 	SecureRelease(pGroundNormalMap);

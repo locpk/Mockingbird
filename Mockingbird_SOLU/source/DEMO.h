@@ -84,6 +84,19 @@ public:
 	ID3D11PixelShader* pskybox_PSShader = nullptr;
 
 
+	//Quad
+	XMMATRIX quad_worldMatrix;
+	XMFLOAT4 quad_pos = {0.0f,4.0f,0.0f,0.0f};
+	D3D11_SHADER_RESOURCE_VIEW_DESC quadDesc;
+	ID3D11RenderTargetView* pQuadRTV = nullptr;
+	ID3D11Texture2D* pQuad_texture = nullptr;
+	ID3D11Buffer* pQuadBuffer = nullptr;
+	ID3D11InputLayout* pQuadInputLayout = nullptr;
+	ID3D11VertexShader* pQuad_VSShader = nullptr;
+	ID3D11GeometryShader* pQuad_GSShader = nullptr;
+	ID3D11PixelShader* pQuad_PSShader = nullptr;
+	ID3D11ShaderResourceView* pQuadSRV = nullptr;
+	ID3D11Buffer* pConstantQuadBuffer = nullptr;
 	//Scene
 	Scene scene;
 	Camera camera;

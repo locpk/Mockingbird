@@ -10,6 +10,7 @@ cbuffer SCENE : register(b0)
 	float4x4 viewMatrix;
 	float4x4 projectionMatrix;
 	bool hasNormal;
+	float3 cameraPos;
 }
 
 cbuffer LIGHTING : register(b2)
@@ -36,6 +37,9 @@ struct P_IN
 
 float4 main(P_IN input) : SV_TARGET
 {
+	float4 SPColor = float4(0.1f,0.1f,0.1f,64.0f);
+
+
 
 	float4 ori = baseTexture.Sample(filters, input.tex);
 
@@ -64,6 +68,19 @@ float4 main(P_IN input) : SV_TARGET
 	float dirRatio = saturate(dot(-dir, input.normal));
 	float4 DIRColor = dirRatio  * dlightColor * ori;
 
+	/*float3 viewDir0 = normalize(cameraPos - input.posW);
+	float4 viewDir = float4(viewDir0.x, viewDir0.y, viewDir0.z,0);
+	float4 dir4 = float4(dlightDirection.x, dlightDirection.y, dlightDirection.z, 0);
+	float4 halfvector = normalize(-dir4) + viewDir;
+	float specFactor = pow(max(saturate(dot(input.normal, normalize(halfvector))), SPColor.w), 0);
+	float4 speccolor = dlightColor*specFactor*SPColor;*/
+	/*if (dirRatio > 0.0f)
+	{
+		float3 v = reflect(dlightDirection.xyz, input.normal);
+		float specFactor = pow(max(dot(v, cameraPos), 0.0f), SPColor.w);
+		DIRColor = saturate(DIRColor + specFactor* SPColor);
+	}*/
+
 	//point Light
 	float3 plightPos = float3(plightPosition.xyz);
 	float3 plightDir = normalize(plightPos - input.posW);
@@ -82,7 +99,7 @@ float4 main(P_IN input) : SV_TARGET
 	//return PointLightColor + amColor;
 	//return DIRColor + amColor;
 	//return SpotLightColor*SpotAttenuation + amColor;
-	return  saturate(amColor + DIRColor + PointLightColor*PointAttenuation + SpotLightColor*SpotAttenuation);
+	return  saturate(amColor + DIRColor  + PointLightColor*PointAttenuation + SpotLightColor*SpotAttenuation);
 }
 
 

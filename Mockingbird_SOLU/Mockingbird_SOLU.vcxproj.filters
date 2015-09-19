@@ -97,5 +97,14 @@
     <FxCompile Include="source\HLSL\SkyBox_PS.hlsl">
       <Filter>HLSL</Filter>
     </FxCompile>
+    <FxCompile Include="source\HLSL\Quad_GS.hlsl">
+      <Filter>HLSL</Filter>
+    </FxCompile>
+    <FxCompile Include="source\HLSL\Quad_PS.hlsl">
+      <Filter>HLSL</Filter>
+    </FxCompile>
+    <FxCompile Include="source\HLSL\Quad_VS.hlsl">
+      <Filter>HLSL</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
