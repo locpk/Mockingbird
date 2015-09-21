@@ -77,6 +77,7 @@ void DrawThread(DEMO* _myDEMO)
 void DEMO::Draw()
 {
 
+	//1st Viewport
 	pDeferredDeviceContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);
 	pDeferredDeviceContext->RSSetViewports(1, &viewport);
 	//Clear background
@@ -87,9 +88,9 @@ void DEMO::Draw()
 
 
 
+	//Map Light Constant Buffer
 	allLights.sLight.lightPosition = { camera.GetPosition().x,camera.GetPosition().y,camera.GetPosition().z,1.0f };
 	allLights.sLight.coneDirAndRatio = { camera.GetForward().x,camera.GetForward().y,camera.GetForward().z,0.8f };
-	//Map Light Constant Buffer
 	D3D11_MAPPED_SUBRESOURCE mapLightingSubresource;
 	pDeferredDeviceContext->Map(pLightingBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapLightingSubresource);
 	memcpy(mapLightingSubresource.pData, &allLights, sizeof(allLights));
@@ -106,25 +107,23 @@ void DEMO::Draw()
 	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
 	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
 	pDeferredDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-
+	pDeferredDeviceContext->PSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
 
 
 	UINT offset = 0;
 	//Heli
+	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &heli.pGOvertices, &heli.Stride, &offset);
+	pDeferredDeviceContext->IASetInputLayout(heli.pGO_inputLayout);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	D3D11_MAPPED_SUBRESOURCE mapObjectSubresource;
 	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
 	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
 	memcpy(mapObjectSubresource.pData, &heli.GO_worldMatrix, sizeof(heli.GO_worldMatrix));
 	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	pDeferredDeviceContext->PSSetShaderResources(0, 1, &heli.pGO_ShaderResourceView);
-	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &heli.pGOvertices, &heli.Stride, &offset);
-	pDeferredDeviceContext->IASetInputLayout(heli.pGO_inputLayout);
 	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
 	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &heli.pGO_ShaderResourceView);
 	pDeferredDeviceContext->RSSetState(heli.pGORS);
 	pDeferredDeviceContext->Draw((UINT)heli.GOrawData.size(), 0);
 
@@ -142,18 +141,16 @@ void DEMO::Draw()
 	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
 	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
 	pDeferredDeviceContext->PSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
-
-	pDeferredDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
-	pDeferredDeviceContext->PSSetShaderResources(1, 1, &pGroundNormalMap);
 	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &ground.pGOvertices, &ground.Stride, &offset);
 	pDeferredDeviceContext->IASetInputLayout(ground.pGO_inputLayout);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
 	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &ground.pGO_ShaderResourceView);
+	pDeferredDeviceContext->PSSetShaderResources(1, 1, &pGroundNormalMap);
 	pDeferredDeviceContext->RSSetState(ground.pGORS);
 	pDeferredDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
-
+	pDeferredDeviceContext->PSSetShaderResources(1, 1, &nullSRV);
 
 	scene.hasNormal = false;
 	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
@@ -194,7 +191,10 @@ void DEMO::Draw()
 	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
-	pDeferredDeviceContext->PSSetShaderResources(0, 1, &skybox.pGO_ShaderResourceView);
+	ID3D11ShaderResourceView* skyboxes[2];
+	skyboxes[0] = skybox.pGO_ShaderResourceView;
+	skyboxes[1] = pSkyboxSunset;
+	pDeferredDeviceContext->PSSetShaderResources(0, 2, skyboxes);
 	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &skybox.pGOvertices, &skybox.Stride, &offset);
 	pDeferredDeviceContext->IASetInputLayout(skybox.pGO_inputLayout);
 	pDeferredDeviceContext->VSSetShader(pskybox_VSShader, NULL, 0);
@@ -203,8 +203,7 @@ void DEMO::Draw()
 
 	pDeferredDeviceContext->RSSetState(skybox.pGORSf);
 	pDeferredDeviceContext->Draw((UINT)skybox.GOrawData.size(), 0);
-
-
+	pDeferredDeviceContext->PSSetShaderResources(1, 1, &nullSRV);
 
 
 
@@ -272,7 +271,7 @@ void DEMO::Draw()
 	memcpy(mapSceneSubresource.pData, &scene, sizeof(scene));
 	pDeferredDeviceContext->Unmap(pConstantSceneBuffer, 0);
 	pDeferredDeviceContext->VSSetConstantBuffers(1, 1, &pConstantSceneBuffer);
-
+	pDeferredDeviceContext->PSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
 
 
 
@@ -281,19 +280,16 @@ void DEMO::Draw()
 	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
 	memcpy(mapObjectSubresource.pData, &heli.GO_worldMatrix, sizeof(heli.GO_worldMatrix));
 	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
-	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
-
-	pDeferredDeviceContext->PSSetShaderResources(0, 1, &heli.pGO_ShaderResourceView);
-
 	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &heli.pGOvertices, &heli.Stride, &offset);
 	pDeferredDeviceContext->IASetInputLayout(heli.pGO_inputLayout);
+	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
 	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
-	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &heli.pGO_ShaderResourceView);
 	pDeferredDeviceContext->RSSetState(heli.pGORS);
 	pDeferredDeviceContext->Draw((UINT)heli.GOrawData.size(), 0);
-
+	pDeferredDeviceContext->PSSetShaderResources(1, 1, &nullSRV);
 
 
 
@@ -319,11 +315,9 @@ void DEMO::Draw()
 	pDeferredDeviceContext->VSSetShader(pHeli_VSShader, NULL, 0);
 	pDeferredDeviceContext->PSSetShader(pHeli_PSShader, NULL, 0);
 	pDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 	pDeferredDeviceContext->RSSetState(ground.pGORS);
-
 	pDeferredDeviceContext->Draw((UINT)ground.GOrawData.size(), 0);
-
+	pDeferredDeviceContext->PSSetShaderResources(1, 1, &nullSRV);
 
 	scene.hasNormal = false;
 	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
@@ -395,7 +389,7 @@ void DEMO::Draw()
 	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 
-	pDeferredDeviceContext->PSSetShaderResources(0, 1, &skybox.pGO_ShaderResourceView);
+	pDeferredDeviceContext->PSSetShaderResources(0, 2, skyboxes);
 	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &skybox.pGOvertices, &skybox.Stride, &offset);
 	pDeferredDeviceContext->IASetInputLayout(skybox.pGO_inputLayout);
 	pDeferredDeviceContext->VSSetShader(pskybox_VSShader, NULL, 0);
@@ -423,7 +417,7 @@ void DEMO::Draw()
 	ID3D11Texture2D* pBackBuffer = nullptr;
 	UINT Quadstride = sizeof(XMFLOAT4);
 	UINT QuadOffset = 0;
-	ID3D11ShaderResourceView* nullSRV = nullptr;
+
 	pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
 	pDeferredDeviceContext->ResolveSubresource(pQuad_texture, 0, pBackBuffer, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 	SecureRelease(pBackBuffer);
@@ -467,6 +461,8 @@ void  DEMO::Load()
 	parkLight.CreateGameObject(pDevice, "asset/ParkLight.obj", Cube_VS, sizeof(Cube_VS));
 	CreateDDSTextureFromFile(pDevice, L"asset/Ground_norm.dds", NULL, &pGroundNormalMap);
 	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test1.dds", NULL, &pCubeShaderResourceView);
+	CreateDDSTextureFromFile(pDevice, L"asset/SunsetSkybox.dds", NULL, &pSkyboxSunset);
+	
 	//CreateDDSTextureFromFile(pDevice, L"asset/Ground.dds", NULL, &pQuadSRV);
 
 	
@@ -976,6 +972,8 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	constbufferLightDesc.StructureByteStride = 0;
 	pDevice->CreateBuffer(&constbufferLightDesc, NULL, &pLightingBuffer);
 
+
+	scene.percent = 0.0f;
 }
 
 DEMO::~DEMO()
@@ -991,6 +989,7 @@ bool DEMO::Run()
 
 	xTime.Signal();
 	static double timer = 0.0;
+	static float SPEED = 1.0f/600.0f;
 	timer += xTime.Delta();
 	if (timer > ANIMATION_SPEED)
 	{
@@ -1000,7 +999,11 @@ bool DEMO::Run()
 		star_matrix = rotYN * star_matrix;
 
 
-
+		if (scene.percent > 1.0f || scene.percent < 0.0f)
+		{
+			SPEED = -SPEED;
+		}
+		scene.percent += SPEED;
 		//for (size_t i = 0; i < cubeInstancedData.size(); i++)
 		//{
 		//	XMMATRIX rotY = XMMatrixRotationY(XMConvertToRadians((float)(i+10))) * XMLoadFloat4x4(&cubeInstancedData[i]);
@@ -1010,7 +1013,7 @@ bool DEMO::Run()
 
 		//Directional Light Movement
 		XMVECTOR DLdir = XMLoadFloat4(&allLights.dLight.lightDirection);
-		DLdir = XMVector4Transform(DLdir, XMMatrixRotationX(0.01f));
+		DLdir = XMVector4Transform(DLdir, XMMatrixRotationX(0.005f));
 		XMStoreFloat4(&allLights.dLight.lightDirection, DLdir);
 
 
@@ -1179,6 +1182,8 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeRSb);
 	SecureRelease(pCubeInstanceBuffer);
 
+
+
 	SecureRelease(pQuadBuffer);
 	SecureRelease(pQuadInputLayout);
 	SecureRelease(pQuad_VSShader);
@@ -1190,6 +1195,7 @@ bool DEMO::ShutDown()
 	SecureRelease(pConstantQuadBuffer);
 
 
+	SecureRelease(pSkyboxSunset);
 	SecureRelease(pLightingBuffer);
 	SecureRelease(pGroundNormalMap);
 	SecureRelease(pHeli_VSShader);

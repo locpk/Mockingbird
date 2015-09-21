@@ -30,6 +30,7 @@ public:
 	POINT lastPos{ -1,-1 };
 	POINT CurPos{ -1,-1 };
 
+	ID3D11ShaderResourceView* nullSRV = nullptr;
 	//D3D11 Interfaces Pointers
 	ID3D11Device* pDevice = nullptr;
 	IDXGISwapChain* pSwapchain = nullptr;
@@ -51,6 +52,7 @@ public:
 
 	//Game Objects
 	ID3D11ShaderResourceView* pGroundNormalMap = nullptr;
+	ID3D11ShaderResourceView* pSkyboxSunset = nullptr;
 
 	XMMATRIX cube_matrix;
 	ID3D11Buffer* pCube = nullptr;

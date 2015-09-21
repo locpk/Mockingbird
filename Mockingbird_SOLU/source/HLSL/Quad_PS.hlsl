@@ -14,6 +14,6 @@ struct P_IN
 float4 main(P_IN input) : SV_TARGET
 {
 	float4 tex = baseTexture.Sample(filters,input.tex);
-	tex.g = tex.r = tex.b;
+	tex.b = tex.g = tex.r = (tex.b + tex.g + tex.r) / 3;
 	return tex;
 }

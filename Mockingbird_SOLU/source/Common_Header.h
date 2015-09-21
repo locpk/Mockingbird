@@ -36,4 +36,5 @@ struct Scene
 	XMMATRIX _proj;
 	BOOL hasNormal;
 	XMFLOAT3 _cameraPos;
+	float percent;
 };
