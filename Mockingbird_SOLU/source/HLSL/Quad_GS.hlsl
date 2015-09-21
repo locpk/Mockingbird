@@ -29,26 +29,34 @@ void main(
 	GSOutput verts[4] =
 	{
 		float4(0,0,0,1), float2(0,0),0,
-		float4(0,0,0,1), float2(1,0),0,
+		float4(0,0,0,1), float2(0.5,0),0,
 		float4(0,0,0,1), float2(0,1),0,
-		float4(0,0,0,1), float2(1,1),0
+		float4(0,0,0,1), float2(0.5,1),0
 	};
-
 	verts[0].pos = input[0];
-	verts[0].pos.x -= 1;
 	verts[1].pos = input[0];
-	verts[1].pos.x += 1;
 	verts[2].pos = input[0];
+	verts[3].pos = input[0];
+
+
+	uint i = 0;
+	for ( i = 0; i < 4; i++)
+	{
+		verts[i].pos = mul(verts[i].pos, viewMatrix1);
+	}
+
+	verts[0].pos.x -= 1;
+	verts[1].pos.x += 1;
 	verts[2].pos.x -= 1;
 	verts[2].pos.y -= 2;
-	verts[3].pos = input[0];
 	verts[3].pos.x += 1;
 	verts[3].pos.y -= 2;
-	float4x4 vp = mul(viewMatrix1, projectionMatrix);
 	
-	for (uint i = 0; i < 4; i++)
+	
+
+	for ( i = 0; i < 4; i++)
 	{
-		verts[i].pos = mul(verts[i].pos, vp);
+		verts[i].pos = mul(verts[i].pos, projectionMatrix);
 	}
 	output.Append(verts[0]);
 	output.Append(verts[1]);
@@ -57,24 +65,32 @@ void main(
 	output.RestartStrip();
 
 
-	verts[0].vierport = 1;
 	verts[0].pos = input[0];
-	verts[0].pos.x -= 1;
 	verts[1].pos = input[0];
+	verts[2].pos = input[0];
+	verts[3].pos = input[0];
+	for ( i = 0; i < 4; i++)
+	{
+		verts[i].pos = mul(verts[i].pos, viewMatrix2);
+	}
+
+	verts[0].vierport = 1;
+	verts[0].pos.x -= 1;
+	verts[0].tex.x = 0.5;
 	verts[1].pos.x += 1;
 	verts[1].vierport = 1;
-	verts[2].pos = input[0];
+	verts[1].tex.x = 1;
 	verts[2].pos.x -= 1;
 	verts[2].pos.y -= 2;
 	verts[2].vierport = 1;
-	verts[3].pos = input[0];
+	verts[2].tex.x = 0.5;
 	verts[3].pos.x += 1;
 	verts[3].pos.y -= 2;
 	verts[3].vierport = 1;
-	float4x4 vp1 = mul(viewMatrix2, projectionMatrix);
-	for (uint i = 0; i < 4; i++)
+	verts[3].tex.x = 1;
+	for ( i = 0; i < 4; i++)
 	{
-		verts[i].pos = mul(verts[i].pos, vp1);
+		verts[i].pos = mul(verts[i].pos, projectionMatrix);
 	}
 	output.Append(verts[0]);
 	output.Append(verts[1]);

@@ -1185,6 +1185,9 @@ bool DEMO::ShutDown()
 	SecureRelease(pQuad_GSShader);
 	SecureRelease(pQuad_PSShader);
 	SecureRelease(pQuadSRV);
+	SecureRelease(pQuadRTV);
+	SecureRelease(pQuad_texture);
+	SecureRelease(pConstantQuadBuffer);
 
 
 	SecureRelease(pLightingBuffer);
