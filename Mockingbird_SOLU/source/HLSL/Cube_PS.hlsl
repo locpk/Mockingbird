@@ -38,7 +38,7 @@ struct P_IN
 
 float4 main(P_IN input) : SV_TARGET
 {
-
+	float4 SPColor = float4(1,1,1,128);
 	float4 ori = baseTexture.Sample(filters, input.tex);
 
 	[flatten]
@@ -46,9 +46,9 @@ float4 main(P_IN input) : SV_TARGET
 	{
 		float4 normalMap = normTexture.Sample(filters, input.tex);
 		normalMap = (2.0f*normalMap) - 1.0f;
-		input.tangent = normalize(input.tangent - dot(input.tangent, input.normal)*input.normal);
+		float3 tangent = normalize(input.tangent - dot(input.tangent, input.normal)*input.normal);
 		float3 biTangent = cross(input.normal, input.tangent);
-		float3x3 texSpace = float3x3(input.tangent, biTangent, input.normal);
+		float3x3 texSpace = float3x3(tangent, biTangent, input.normal);
 		input.normal = (mul((float3)normalMap, texSpace));
 
 	}
@@ -60,6 +60,16 @@ float4 main(P_IN input) : SV_TARGET
 	float3 dir = float3(dlightDirection.xyz);
 	float dirRatio = saturate(dot(-dir, input.normal));
 	float4 DIRColor = dirRatio  * dlightColor * ori;
+
+
+	//Directional Light Specular
+	if (dirRatio > 0.0f)
+	{
+		float3 v = reflect(normalize(dir), normalize(input.normal));
+		float specFactor = pow(max(dot(v, normalize(cameraPos - input.posW)), 0.0f), SPColor.w);
+		DIRColor = DIRColor + specFactor * SPColor;
+	}
+
 
 	//point Light
 	float3 plightPos = float3(plightPosition.xyz);
@@ -79,7 +89,7 @@ float4 main(P_IN input) : SV_TARGET
 	//return PointLightColor + amColor;
 	//return DIRColor + amColor;
 	//return SpotLightColor*SpotAttenuation + amColor;
-	return  saturate(amColor + DIRColor  + PointLightColor*PointAttenuation + SpotLightColor*SpotAttenuation);
+	return  saturate(amColor + DIRColor + PointLightColor*PointAttenuation + SpotLightColor*SpotAttenuation);
 }
 
 

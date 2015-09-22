@@ -7,6 +7,7 @@
 #include <string>
 #include <thread>
 #include <DirectXMath.h>
+
 using namespace std;
 using namespace DirectX;
 

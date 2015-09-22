@@ -21,11 +21,13 @@ struct Lights
 
 class DEMO
 {
-public:
+
 	//Windows
-	HINSTANCE						application;
-	WNDPROC							appWndProc;
-	HWND							window;
+	static HINSTANCE					application;
+	static WNDPROC						appWndProc;
+	static HWND							window;
+
+	bool resizing = false;
 
 	POINT lastPos{ -1,-1 };
 	POINT CurPos{ -1,-1 };
@@ -35,13 +37,12 @@ public:
 	ID3D11Device* pDevice = nullptr;
 	IDXGISwapChain* pSwapchain = nullptr;
 	ID3D11DeviceContext* pDeviceContext = nullptr;
-	ID3D11DeviceContext* pDeferredDeviceContext = nullptr;
-	ID3D11CommandList* pCommandList = nullptr;
 	ID3D11RenderTargetView* pRenderTargetView = nullptr;
 	ID3D11DepthStencilView* pDepthStencilView = nullptr;
 	ID3D11Texture2D* pZBuffer = nullptr;
 	ID3D11Buffer* pConstantObjectBuffer = nullptr;
 	ID3D11Buffer* pConstantSceneBuffer = nullptr;
+	ID3D11Buffer* pConstantTimeBuffer = nullptr;
 	ID3D11BlendState* pBlendState = nullptr;
 	ID3D11VertexShader* pProjection_VSShader = nullptr;
 	//D3D11 Stack Variables
@@ -88,7 +89,7 @@ public:
 
 	//Quad
 	XMMATRIX quad_worldMatrix;
-	XMFLOAT4 quad_pos = {0.0f,4.0f,0.0f,0.0f};
+	XMFLOAT4 quad_pos = { 0.0f,4.0f,0.0f,0.0f };
 	D3D11_SHADER_RESOURCE_VIEW_DESC quadDesc;
 	ID3D11RenderTargetView* pQuadRTV = nullptr;
 	ID3D11Texture2D* pQuad_texture = nullptr;
@@ -120,7 +121,9 @@ public:
 
 
 
-
+public:
+	ID3D11DeviceContext* pDeferredDeviceContext = nullptr;
+	ID3D11CommandList* pCommandList = nullptr;
 	static DEMO* GetInstance(HINSTANCE hinst, WNDPROC proc);
 
 	void ResizeWindow(UINT _width, UINT _height);

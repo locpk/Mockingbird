@@ -15,7 +15,7 @@
 
 #define MSAA 1
 #define MSAA_COUNT 8
-//Helper Fuctions
+//BEGIN Helper Fuctions
 MyVertex* CreateStar()
 {
 	//Create Star
@@ -54,7 +54,6 @@ MyVertex* CreateStar()
 	return	star;
 }
 
-
 float ObjectToCamera(XMFLOAT4X4* _objMatrix, XMFLOAT3 _cameraPos)
 {
 	XMVECTOR obj = XMVectorZero();
@@ -64,8 +63,10 @@ float ObjectToCamera(XMFLOAT4X4* _objMatrix, XMFLOAT3 _cameraPos)
 	float ObjtoCameraZ = XMVectorGetZ(obj) - _cameraPos.z;
 	return ObjtoCameraX*ObjtoCameraX + ObjtoCameraY*ObjtoCameraY + ObjtoCameraZ*ObjtoCameraZ;
 }
+//END Helper Fuctions
 
 
+//Thread functions
 void DrawThread(DEMO* _myDEMO)
 {
 	if (_myDEMO)
@@ -76,6 +77,7 @@ void DrawThread(DEMO* _myDEMO)
 
 void DEMO::Draw()
 {
+
 
 	//1st Viewport
 	pDeferredDeviceContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);
@@ -96,6 +98,16 @@ void DEMO::Draw()
 	memcpy(mapLightingSubresource.pData, &allLights, sizeof(allLights));
 	pDeferredDeviceContext->Unmap(pLightingBuffer, 0);
 	pDeferredDeviceContext->PSSetConstantBuffers(2, 1, &pLightingBuffer);
+
+
+	//Map Time Constant buffer
+	float totalTime[4];
+	totalTime[0] = (float)xTime.TotalTime();
+	D3D11_MAPPED_SUBRESOURCE mapTimeSubresource;
+	ZeroMemory(&mapTimeSubresource, sizeof(mapTimeSubresource));
+	pDeferredDeviceContext->Map(pConstantTimeBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapTimeSubresource);
+	memcpy(mapTimeSubresource.pData, totalTime, sizeof(float)*4);
+	pDeferredDeviceContext->Unmap(pConstantTimeBuffer, 0);
 
 
 
@@ -254,10 +266,10 @@ void DEMO::Draw()
 	pDeferredDeviceContext->DrawIndexedInstanced(1692, (UINT)cubeInstancedData.size(), 0, 0, 0);
 
 
-	
 
 
-	
+
+
 	//Second Viewport
 
 	scene._proj = another_camera.GetProj();
@@ -406,11 +418,11 @@ void DEMO::Draw()
 	viewports[1] = another_viewport;
 	pDeferredDeviceContext->RSSetViewports(2, viewports);
 
-	XMMATRIX view[2]; 
+	XMMATRIX view[2];
 	view[0] = camera.GetView();
 	view[1] = another_camera.GetView();
 	pDeferredDeviceContext->Map(pConstantQuadBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
-	memcpy(mapSceneSubresource.pData, &view, sizeof(XMMATRIX)* 2);
+	memcpy(mapSceneSubresource.pData, &view, sizeof(XMMATRIX) * 2);
 	pDeferredDeviceContext->Unmap(pConstantQuadBuffer, 0);
 	pDeferredDeviceContext->GSSetConstantBuffers(1, 1, &pConstantQuadBuffer);
 	//Quad
@@ -418,10 +430,13 @@ void DEMO::Draw()
 	UINT Quadstride = sizeof(XMFLOAT4);
 	UINT QuadOffset = 0;
 
+
 	pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
 	pDeferredDeviceContext->ResolveSubresource(pQuad_texture, 0, pBackBuffer, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 	SecureRelease(pBackBuffer);
-	
+
+
+
 
 	ZeroMemory(&mapObjectSubresource, sizeof(mapObjectSubresource));
 	pDeferredDeviceContext->Map(pConstantObjectBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapObjectSubresource);
@@ -429,9 +444,10 @@ void DEMO::Draw()
 	pDeferredDeviceContext->Unmap(pConstantObjectBuffer, 0);
 	pDeferredDeviceContext->VSSetConstantBuffers(0, 1, &pConstantObjectBuffer);
 	pDeferredDeviceContext->GSSetConstantBuffers(0, 1, &pConstantSceneBuffer);
+	pDeferredDeviceContext->PSSetConstantBuffers(0, 1, &pConstantTimeBuffer);
 	pDeferredDeviceContext->OMSetBlendState(pBlendState, NULL, 0xFFFFFFFF);
 
-	pDeferredDeviceContext->PSSetShaderResources(1, 1, &pQuadSRV);
+	pDeferredDeviceContext->PSSetShaderResources(0, 1, &pQuadSRV);
 	pDeferredDeviceContext->IASetVertexBuffers(0, 1, &pQuadBuffer, &Quadstride, &QuadOffset);
 	pDeferredDeviceContext->VSSetShader(pQuad_VSShader, NULL, 0);
 	pDeferredDeviceContext->GSSetShader(pQuad_GSShader, NULL, 0);
@@ -443,7 +459,7 @@ void DEMO::Draw()
 	pDeferredDeviceContext->Draw(1, 0);
 	pDeferredDeviceContext->GSSetShader(NULL, NULL, 0);
 	pDeferredDeviceContext->PSSetShaderResources(0, 1, &nullSRV);
-	
+
 
 
 
@@ -457,15 +473,10 @@ void  DEMO::Load()
 	heli.CreateGameObject(pDevice, "asset/heli.obj", Cube_VS, sizeof(Cube_VS));
 	skybox.CreateGameObject(pDevice, "asset/skybox.obj", SkyBox_VS, sizeof(SkyBox_VS));
 	ground.CreateGameObject(pDevice, "asset/Ground.obj", Cube_VS, sizeof(Cube_VS));
-
 	parkLight.CreateGameObject(pDevice, "asset/ParkLight.obj", Cube_VS, sizeof(Cube_VS));
 	CreateDDSTextureFromFile(pDevice, L"asset/Ground_norm.dds", NULL, &pGroundNormalMap);
 	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test1.dds", NULL, &pCubeShaderResourceView);
 	CreateDDSTextureFromFile(pDevice, L"asset/SunsetSkybox.dds", NULL, &pSkyboxSunset);
-	
-	//CreateDDSTextureFromFile(pDevice, L"asset/Ground.dds", NULL, &pQuadSRV);
-
-	
 }
 void LoadThread(DEMO* _myDEMO)
 {
@@ -478,8 +489,9 @@ void LoadThread(DEMO* _myDEMO)
 
 
 
-
-
+HINSTANCE	DEMO::application;
+WNDPROC		DEMO::appWndProc;
+HWND		DEMO::window;
 DEMO* DEMO::s_pInstance = nullptr;
 
 DEMO* DEMO::GetInstance(HINSTANCE hinst, WNDPROC proc)
@@ -561,7 +573,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	ID3D11Texture2D* pBackBuffer = nullptr;
 	pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
 	pDevice->CreateRenderTargetView(pBackBuffer, 0, &pRenderTargetView);
-
+	SecureRelease(pBackBuffer);
 
 
 
@@ -582,7 +594,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	quadDesc.Texture2D.MipLevels = 1;
 	quadDesc.Texture2D.MostDetailedMip = 0;
 	pDevice->CreateShaderResourceView(pQuad_texture, &quadDesc, &pQuadSRV);
-	SecureRelease(pBackBuffer);
+
 
 
 
@@ -763,7 +775,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	D3D11_INPUT_ELEMENT_DESC quadInputLayout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	
+
 	};
 	pDevice->CreateInputLayout(quadInputLayout, 1, Quad_VS, sizeof(Quad_VS), &pQuadInputLayout);
 
@@ -887,6 +899,15 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreateBuffer(&constbufferQuadDesc, NULL, &pConstantQuadBuffer);
 
 
+	D3D11_BUFFER_DESC constbufferTimeDesc;
+	ZeroMemory(&constbufferTimeDesc, sizeof(constbufferTimeDesc));
+	constbufferTimeDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constbufferTimeDesc.ByteWidth = sizeof(float) * 4;
+	constbufferTimeDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	constbufferTimeDesc.Usage = D3D11_USAGE_DYNAMIC;
+	constbufferTimeDesc.MiscFlags = 0;
+	constbufferTimeDesc.StructureByteStride = 0;
+	pDevice->CreateBuffer(&constbufferTimeDesc, NULL, &pConstantTimeBuffer);
 
 
 
@@ -989,7 +1010,7 @@ bool DEMO::Run()
 
 	xTime.Signal();
 	static double timer = 0.0;
-	static float SPEED = 1.0f/600.0f;
+	static float SPEED = 1.0f / 600.0f;
 	timer += xTime.Delta();
 	if (timer > ANIMATION_SPEED)
 	{
@@ -1182,7 +1203,7 @@ bool DEMO::ShutDown()
 	SecureRelease(pCubeRSb);
 	SecureRelease(pCubeInstanceBuffer);
 
-
+	SecureRelease(pConstantTimeBuffer);
 
 	SecureRelease(pQuadBuffer);
 	SecureRelease(pQuadInputLayout);
@@ -1214,7 +1235,7 @@ bool DEMO::ShutDown()
 	SecureRelease(pConstantObjectBuffer);
 	SecureRelease(pConstantSceneBuffer);
 	SecureRelease(pBlendState);
-	//SecureRelease(pCommandList);
+	SecureRelease(pCommandList);
 
 	SecureRelease(pDeferredDeviceContext);
 	SecureRelease(pDeviceContext);
@@ -1276,6 +1297,27 @@ void DEMO::ResizeWindow(UINT _width, UINT _height)
 		another_viewport.TopLeftX = (float)_width / 2.0f;
 		another_viewport.Width = (float)_width / 2.0f;
 		another_viewport.Height = (float)_height;
-		pDeviceContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);
+
+
+		SecureRelease(pQuadRTV);
+		SecureRelease(pQuad_texture);
+		SecureRelease(pQuadSRV);
+		D3D11_TEXTURE2D_DESC renderToTextureDesc;
+		ZeroMemory(&renderToTextureDesc, sizeof(renderToTextureDesc));
+		renderToTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+		renderToTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		renderToTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		renderToTextureDesc.Height = _height;
+		renderToTextureDesc.Width = _width;
+		renderToTextureDesc.SampleDesc.Count = 1;
+		renderToTextureDesc.ArraySize = 1;
+		renderToTextureDesc.MipLevels = 1;
+		pDevice->CreateTexture2D(&renderToTextureDesc, NULL, &pQuad_texture);
+		pDevice->CreateRenderTargetView(pQuad_texture, 0, &pQuadRTV);
+		quadDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		quadDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		quadDesc.Texture2D.MipLevels = 1;
+		quadDesc.Texture2D.MostDetailedMip = 0;
+		pDevice->CreateShaderResourceView(pQuad_texture, &quadDesc, &pQuadSRV);
 	}
 }

@@ -24,6 +24,8 @@ struct P_IN
 };
 float4 main(P_IN input) : SV_TARGET
 {
+	
+
 	float4 morning = sunrise.Sample(filters,input.tex);
 	float4 evening = sunset.Sample(filters, input.tex);
 
