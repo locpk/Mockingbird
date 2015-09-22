@@ -477,7 +477,6 @@ void  DEMO::Load()
 	CreateDDSTextureFromFile(pDevice, L"asset/Ground_norm.dds", NULL, &pGroundNormalMap);
 	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test1.dds", NULL, &pCubeShaderResourceView);
 	CreateDDSTextureFromFile(pDevice, L"asset/SunsetSkybox.dds", NULL, &pSkyboxSunset);
-	CreateDDSTextureFromFile(pDevice, L"asset/T_Difuse_Helicopter_normal.dds", NULL, &pHeliSRV);
 }
 void LoadThread(DEMO* _myDEMO)
 {
@@ -1222,7 +1221,6 @@ bool DEMO::ShutDown()
 	SecureRelease(pGroundNormalMap);
 	SecureRelease(pHeli_VSShader);
 	SecureRelease(pHeli_PSShader);
-	SecureRelease(pHeliSRV);
 	SecureRelease(pskybox_VSShader);
 	SecureRelease(pskybox_PSShader);
 	SecureRelease(pStar);
