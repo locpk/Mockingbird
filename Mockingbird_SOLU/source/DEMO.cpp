@@ -112,7 +112,7 @@ void DEMO::Draw()
 
 
 	scene._cameraPos = camera.GetPosition();
-	scene.hasNormal = true;
+
 	D3D11_MAPPED_SUBRESOURCE mapSceneSubresource;
 	ZeroMemory(&mapSceneSubresource, sizeof(mapSceneSubresource));
 	pDeferredDeviceContext->Map(pConstantSceneBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSceneSubresource);
@@ -477,6 +477,7 @@ void  DEMO::Load()
 	CreateDDSTextureFromFile(pDevice, L"asset/Ground_norm.dds", NULL, &pGroundNormalMap);
 	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test1.dds", NULL, &pCubeShaderResourceView);
 	CreateDDSTextureFromFile(pDevice, L"asset/SunsetSkybox.dds", NULL, &pSkyboxSunset);
+	CreateDDSTextureFromFile(pDevice, L"asset/T_Difuse_Helicopter_normal.dds", NULL, &pHeliSRV);
 }
 void LoadThread(DEMO* _myDEMO)
 {
@@ -972,7 +973,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	parkLight.GO_worldMatrix = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
 
 	//Lights
-	allLights.amLight.lightColor = { 0.2f, 0.2f, 0.2f,1.0f };
+	allLights.amLight.lightColor = { 0.58f, 0.58f, 0.58f,1.0f };
 	allLights.dLight.lightColor = { 1.0f, 1.0f, 1.0f,1.0f };
 	allLights.dLight.lightDirection = { 0.58f, -0.58f, 0.58f,1.0f };
 	allLights.pLight.lightColor = { 0.0f,1.0f,0.0f,1.0f };
@@ -1221,6 +1222,7 @@ bool DEMO::ShutDown()
 	SecureRelease(pGroundNormalMap);
 	SecureRelease(pHeli_VSShader);
 	SecureRelease(pHeli_PSShader);
+	SecureRelease(pHeliSRV);
 	SecureRelease(pskybox_VSShader);
 	SecureRelease(pskybox_PSShader);
 	SecureRelease(pStar);

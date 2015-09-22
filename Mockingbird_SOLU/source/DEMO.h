@@ -77,6 +77,7 @@ class DEMO
 
 
 	GameObject heli;
+	ID3D11ShaderResourceView* pHeliSRV = nullptr;
 	ID3D11VertexShader* pHeli_VSShader = nullptr;
 	ID3D11PixelShader* pHeli_PSShader = nullptr;
 	GameObject ground;
