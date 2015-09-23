@@ -66,14 +66,7 @@ float ObjectToCamera(XMFLOAT4X4* _objMatrix, XMFLOAT3 _cameraPos)
 //END Helper Fuctions
 
 
-//Thread functions
-void DrawThread(DEMO* _myDEMO)
-{
-	if (_myDEMO)
-	{
-		_myDEMO->Draw();
-	}
-}
+
 
 void DEMO::Draw()
 {
@@ -478,13 +471,6 @@ void  DEMO::Load()
 	CreateDDSTextureFromFile(pDevice, L"asset/numbers_test1.dds", NULL, &pCubeShaderResourceView);
 	CreateDDSTextureFromFile(pDevice, L"asset/SunsetSkybox.dds", NULL, &pSkyboxSunset);
 }
-void LoadThread(DEMO* _myDEMO)
-{
-	if (_myDEMO)
-	{
-		_myDEMO->Load();
-	}
-}
 
 
 
@@ -750,7 +736,7 @@ DEMO::DEMO(HINSTANCE hinst, WNDPROC proc)
 	pDevice->CreatePixelShader(SkyBox_PS, sizeof(SkyBox_PS), NULL, &pskybox_PSShader);
 
 
-	thread load = thread(LoadThread, this);
+	thread load = thread(&DEMO::Load, this);
 	load.join();
 
 
@@ -1170,7 +1156,7 @@ bool DEMO::Run()
 	skybox.GO_worldMatrix = XMMatrixScaling(5.0f, 5.0f, 5.0f) * XMMatrixTranslation(camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 
 
-	thread draw = thread(DrawThread, this);
+	thread draw = thread(&DEMO::Draw,this);
 	draw.join();
 	if (pCommandList)
 	{
